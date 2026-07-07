@@ -40,7 +40,7 @@
     --font-script: 'Caveat', cursive;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;height:100%;height:100dvh;}
+  html,body{margin:0;padding:0;height:100%;height:100dvh;overscroll-behavior-y:contain;}
   body{
     overscroll-behavior:none;color:var(--text);font-family:var(--font);
     background:
@@ -51,9 +51,9 @@
       var(--bg);
     background-attachment:fixed;
   }
-  #app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative;display:flex;flex-direction:column;background:transparent;}
+  #app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative;display:flex;flex-direction:column;background:transparent;overscroll-behavior-y:contain;}
   .tabular{font-variant-numeric:tabular-nums;}
-  .screen{flex:1;display:none;flex-direction:column;padding:20px 20px 100px;overflow-y:auto;opacity:1;transform:translateY(0);transition:opacity .28s ease, transform .28s ease;}
+  .screen{flex:1;display:none;flex-direction:column;padding:20px 20px 100px;overflow-y:auto;overscroll-behavior-y:contain;opacity:1;transform:translateY(0);transition:opacity .28s ease, transform .28s ease;}
   #screen-adjust.active{padding-bottom:16px;}
   .screen.active{display:flex;}
   .screen.screen-enter{opacity:0;transform:translateY(14px);}
@@ -452,7 +452,17 @@
   <!-- ===== SCREEN: FORTSCHRITT ===== -->
   <div class="screen" id="screen-progress">
     <div class="topbar"><h2>Fortschritt</h2></div>
-    <div class="row" style="margin-top:16px;gap:12px;">
+    <div class="card" id="prog-plan-card" style="margin-top:16px;padding:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Plan-Fortschritt</p>
+        <span id="prog-plan-pct" style="font-size:13px;font-weight:800;color:var(--accent-text);">0%</span>
+      </div>
+      <div style="background:var(--border);border-radius:100px;height:10px;margin-top:10px;overflow:hidden;">
+        <div id="prog-plan-bar" style="background:var(--accent);height:100%;width:0%;border-radius:100px;transition:width .4s ease;"></div>
+      </div>
+      <p id="prog-plan-label" style="margin-top:8px;font-size:12px;">0 von 0 Trainings absolviert</p>
+    </div>
+    <div class="row" style="margin-top:12px;gap:12px;">
       <div class="card" style="flex:1;padding:16px;">
         <p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Gesamt</p>
         <h3 id="prog-total-km" style="margin-top:6px;font-size:24px;">0 km</h3>
@@ -1012,8 +1022,7 @@ async function loadUserApp() {
     state.plan = active;
     state.workouts = await Store.queryByField('workouts', 'plan_id', active.id);
     state.runLogs = await Store.queryByField('run_logs', 'user_id', uid);
-    showScreen('dashboard'); setNav('dashboard');
-    renderDashboard();
+    goToTab('dashboard');
   } else {
     showScreen('goal');
   }
@@ -1063,15 +1072,116 @@ function toast(msg) {
   setTimeout(() => t.style.display = 'none', 2200);
 }
 
-document.querySelectorAll('.navitem').forEach(btn => {
+// ---------- 5b. TAB-NAVIGATION MIT HISTORY (Zurück-Pfeile / Android-Back) ----------
+const TAB_ORDER = ['dashboard', 'calendar', 'progress', 'profile'];
+function renderTab(tab) {
+  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'calendar') renderCalendar();
+  if (tab === 'progress') renderProgress();
+  if (tab === 'profile') renderProfile();
+}
+function goToTab(tab, opts) {
+  opts = opts || {};
+  showScreen(tab); setNav(tab); renderTab(tab);
+  if (!opts.skipHistory) {
+    safeHistory('push', { tab });
+  }
+}
+window.addEventListener('popstate', (e) => {
+  // Wenn ein Sheet/Modal offen ist: erst das schließen statt Tab zu wechseln.
+  const sheetOpen = document.getElementById('sheet-backdrop').classList.contains('active');
+  if (sheetOpen) { closeSheet(); return; }
+  const tab = (e.state && e.state.tab) || 'dashboard';
+  if (TAB_ORDER.includes(tab)) {
+    showScreen(tab); setNav(tab); renderTab(tab);
+  }
+});
+function safeHistory(mode, state) {
+  try {
+    if (mode === 'push') history.pushState(state, '');
+    else history.replaceState(state, '');
+  } catch (err) {
+    // In sandboxed Preview-Frames (z.B. about:srcdoc) ist History-API blockiert — dann einfach ignorieren.
+  }
+}
+if (!history.state) safeHistory('replace', { tab: 'dashboard' });
+
+document.querySelectorAll('.navitem[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
-    if (tab === 'dashboard') { showScreen('dashboard'); setNav('dashboard'); renderDashboard(); }
-    if (tab === 'calendar') { showScreen('calendar'); setNav('calendar'); renderCalendar(); }
-    if (tab === 'progress') { showScreen('progress'); setNav('progress'); renderProgress(); }
-    if (tab === 'profile') { showScreen('profile'); setNav('profile'); renderProfile(); }
+    goToTab(tab);
   });
 });
+
+// ---------- 5c. WISCHGESTEN: Tab-Wechsel per Swipe ----------
+(function(){
+  let touchStartX = 0, touchStartY = 0, touching = false;
+  const appEl = document.getElementById('app');
+  appEl.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    // Nur wischen, wenn gerade ein Haupt-Tab aktiv ist (kein Sheet/Chat/Onboarding etc.)
+    const activeScreen = document.querySelector('.screen.active');
+    if (!activeScreen || !TAB_ORDER.includes(activeScreen.id.replace('screen-', ''))) { touching = false; return; }
+    if (document.getElementById('sheet-backdrop').classList.contains('active')) { touching = false; return; }
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touching = true;
+  }, { passive: true });
+  appEl.addEventListener('touchend', (e) => {
+    if (!touching) return;
+    touching = false;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const activeScreen = document.querySelector('.screen.active');
+    const currentTab = activeScreen.id.replace('screen-', '');
+    const idx = TAB_ORDER.indexOf(currentTab);
+    if (idx === -1) return;
+    if (dx < 0 && idx < TAB_ORDER.length - 1) {
+      goToTab(TAB_ORDER[idx + 1]);
+    } else if (dx > 0 && idx > 0) {
+      goToTab(TAB_ORDER[idx - 1]);
+    }
+  }, { passive: true });
+})();
+
+// ---------- 5d. SHEET RUNTERWISCHEN ZUM SCHLIESSEN ----------
+(function(){
+  const sheetBackdrop = document.getElementById('sheet-backdrop');
+  let startY = 0, currentY = 0, dragging = false, sheetEl = null;
+  function getSheetEl() { return sheetBackdrop.querySelector('.sheet'); }
+  sheetBackdrop.addEventListener('touchstart', (e) => {
+    sheetEl = getSheetEl();
+    if (!sheetEl) return;
+    // Nur starten, wenn der Sheet-Inhalt oben ist (nicht mitten im Scrollen greifen)
+    if (sheetEl.scrollTop > 4) { dragging = false; return; }
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    dragging = true;
+    sheetEl.style.transition = 'none';
+  }, { passive: true });
+  sheetBackdrop.addEventListener('touchmove', (e) => {
+    if (!dragging || !sheetEl) return;
+    currentY = e.touches[0].clientY;
+    const delta = currentY - startY;
+    if (delta > 0) sheetEl.style.transform = `translateY(${delta}px)`;
+  }, { passive: true });
+  sheetBackdrop.addEventListener('touchend', () => {
+    if (!dragging || !sheetEl) return;
+    dragging = false;
+    const delta = currentY - startY;
+    sheetEl.style.transition = 'transform .25s ease';
+    if (delta > 90) {
+      sheetEl.style.transform = `translateY(100%)`;
+      setTimeout(() => { sheetEl.style.transform = ''; sheetEl.style.transition = ''; closeSheet(); }, 200);
+    } else {
+      sheetEl.style.transform = '';
+      setTimeout(() => { sheetEl.style.transition = ''; }, 250);
+    }
+  });
+})();
+
 document.getElementById('fab-adjust').addEventListener('click', () => openAdjustSheet('chat'));
 
 // ---------- 6. ONBOARDING: ZIEL WÄHLEN ----------
@@ -1101,7 +1211,7 @@ document.getElementById('goal-custom-input').addEventListener('input', (e) => {
 });
 
 document.getElementById('topbar-profile').addEventListener('click', () => {
-  showScreen('profile'); setNav('profile'); renderProfile();
+  goToTab('profile');
 });
 
 document.getElementById('btn-goal-next').addEventListener('click', () => {
@@ -1278,6 +1388,27 @@ function personalizationContext() {
   const parts = [];
   parts.push(name ? `Name des Nutzers: ${name}.` : `Name des Nutzers: unbekannt.`);
   if (plan) parts.push(`Aktueller Plan: ${plan.summary || plan.goal} (Woche läuft, ${plan.weeks_total || '?'} Wochen gesamt).`);
+
+  const todayStr = new Date().toISOString().slice(0,10);
+  parts.push(`Heutiges Datum: ${todayStr}.`);
+  const todayWorkout = state.workouts.find(w => w.scheduled_date === todayStr);
+  if (todayWorkout) {
+    if (todayWorkout.type === 'rest') {
+      parts.push(`Heute ist laut Plan ein Ruhetag, kein Lauf vorgesehen.`);
+    } else {
+      parts.push(`Heute ist laut Plan ein Lauftag: ${typeLabel(todayWorkout.type)}, ${todayWorkout.target_distance_km} km, Status: ${todayWorkout.status}.`);
+    }
+  } else {
+    parts.push(`Für heute ist im Plan kein Training eingetragen.`);
+  }
+  const upcoming7 = state.workouts
+    .filter(w => w.scheduled_date >= todayStr)
+    .sort((a,b) => a.scheduled_date.localeCompare(b.scheduled_date))
+    .slice(0, 7);
+  if (upcoming7.length > 0) {
+    const schedule = upcoming7.map(w => `${w.scheduled_date}: ${w.type === 'rest' ? 'Ruhetag' : `${typeLabel(w.type)} (${w.target_distance_km} km, Status: ${w.status})`}`).join('; ');
+    parts.push(`Anstehender Plan (nächste Termine mit exaktem Datum, nutze NUR diese Daten für Aussagen zu 'wann ist mein nächster Lauf' o.ä.): ${schedule}.`);
+  }
   return parts.join(' ');
 }
 const BOB_PERSONA_RULE = `Sprich den Nutzer immer direkt und persönlich mit "du" an — sag z.B. "weil du krank bist" statt "da der Nutzer krank ist". Sprich NIE in der dritten Person von "der Nutzer" oder "dem Athleten". Nutze den Namen des Nutzers hin und wieder, wenn er bekannt ist, und beziehe dich konkret auf sein Ziel bzw. seinen Plan statt allgemein zu bleiben.`;
@@ -1355,8 +1486,7 @@ document.getElementById('btn-create-plan').addEventListener('click', async () =>
   state.workouts = workouts;
   setTimeout(() => {
     document.getElementById('bottomnav').style.display = 'flex';
-    showScreen('dashboard'); setNav('dashboard');
-    renderDashboard();
+    goToTab('dashboard');
   }, 900);
 });
 
@@ -1722,7 +1852,7 @@ function openAdjustSheet(mode) {
 document.getElementById('btn-reset').addEventListener('click', endActivePlan);
 document.getElementById('adjust-close').addEventListener('click', () => {
   document.getElementById('bottomnav').style.display = 'flex';
-  showScreen('dashboard'); setNav('dashboard'); renderDashboard();
+  goToTab('dashboard');
 });
 document.querySelectorAll('#adjust-chips .chip').forEach(chip => {
   chip.addEventListener('click', () => submitAdjustPrompt(chip.dataset.txt));
@@ -1793,12 +1923,26 @@ function renderDiff(updated) {
       plan_id: state.plan.id, ai_reasoning: 'siehe chat', diff_json: JSON.stringify(updated), created_at: Date.now()
     });
     toast("Plan aktualisiert ✓");
-    showScreen('dashboard'); setNav('dashboard'); renderDashboard();
+    goToTab('dashboard');
   });
 }
 
 // ---------- 9b. FORTSCHRITT ----------
 function renderProgress() {
+  // Plan-Fortschritt: Wie viel des aktiven Trainingsplans wurde absolviert
+  const planWorkouts = state.workouts.filter(w => w.type !== 'rest');
+  const completedWorkouts = planWorkouts.filter(w => w.status === 'completed');
+  const planPct = planWorkouts.length > 0 ? Math.round((completedWorkouts.length / planWorkouts.length) * 100) : 0;
+  const planCard = document.getElementById('prog-plan-card');
+  if (planWorkouts.length === 0) {
+    planCard.style.display = 'none';
+  } else {
+    planCard.style.display = 'block';
+    document.getElementById('prog-plan-pct').textContent = `${planPct}%`;
+    document.getElementById('prog-plan-bar').style.width = `${planPct}%`;
+    document.getElementById('prog-plan-label').textContent = `${completedWorkouts.length} von ${planWorkouts.length} Trainings absolviert`;
+  }
+
   const logs = [...state.runLogs].sort((a, b) => (a.logged_at || 0) - (b.logged_at || 0));
   const totalKm = logs.reduce((sum, l) => sum + (l.actual_distance_km || 0), 0);
   document.getElementById('prog-total-km').textContent = `${totalKm.toFixed(1)} km`;
