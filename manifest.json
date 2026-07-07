@@ -1,6 +1,6 @@
 {
-  "name": "Runny – Dein Lauf-Coach",
-  "short_name": "Runny",
+  "name": "Runnify – Dein Lauf-Coach",
+  "short_name": "Runnify",
   "description": "Dein persönlicher KI-Laufcoach mit Trainingsplan, Kalender und Bob.",
   "start_url": "./index.html",
   "scope": "./",
