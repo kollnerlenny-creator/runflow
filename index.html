@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>RunFlow</title>
+<title>Runny</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -46,6 +46,7 @@
   #app{max-width:480px;margin:0 auto;min-height:100vh;position:relative;display:flex;flex-direction:column;background:transparent;}
   .tabular{font-variant-numeric:tabular-nums;}
   .screen{flex:1;display:none;flex-direction:column;padding:20px 20px 100px;overflow-y:auto;opacity:1;transform:translateY(0);transition:opacity .28s ease, transform .28s ease;}
+  #screen-adjust.active{padding-bottom:16px;}
   .screen.active{display:flex;}
   .screen.screen-enter{opacity:0;transform:translateY(14px);}
   .logo-mark{font-family:var(--font-script);color:var(--accent-text);line-height:1;font-weight:600;}
@@ -57,25 +58,33 @@
   h1{font-size:28px;}
   h2{font-size:20px;}
   p{margin:0;color:var(--text-dim);font-size:14px;line-height:1.5;}
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 6px;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 0 6px;}
   .topbar .brand{font-size:15px;font-weight:800;letter-spacing:0.02em;color:var(--accent-text);}
+  .topbar .logo-mark{margin-left:0;}
+  .topbar-actions{display:flex;align-items:center;gap:10px;}
+  .icon-round{width:36px;height:36px;border-radius:50%;background:var(--bg-card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;flex-shrink:0;transition:transform .15s ease, background .2s ease;}
+  .icon-round:active{transform:scale(0.92);}
+  .icon-round.ai-new{background:var(--accent);color:#14171B;border-color:var(--accent);}
+  .icon-round.ai-new .ico{}
   .card{background:var(--bg-card);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,0.6);border-radius:var(--radius);padding:20px;box-shadow:0 8px 30px rgba(20,23,20,0.06);}
-  .hero-card{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.12);border-radius:var(--card-radius);padding:24px;margin-top:16px;isolation:isolate;background:#171C13;color:#F5F7F0;}
-  .hero-card p, .hero-card .hero-sub{color:rgba(245,247,240,0.7);}
+  .hero-card{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.35);border-radius:var(--card-radius);padding:24px;margin-top:16px;isolation:isolate;background:#7FA35A;color:#14171B;}
+  .hero-card p, .hero-card .hero-sub{color:rgba(20,23,20,0.72);}
+  .hero-card .type-badge{color:#14171B;}
+  .hero-card .type-badge .dot{color:#7FA35A;}
   .hero-card::before{content:"";position:absolute;inset:-30%;z-index:-1;
     background:
-      radial-gradient(circle at 20% 15%, var(--blob-1) 0%, transparent 45%),
-      radial-gradient(circle at 85% 10%, var(--accent-dim) 0%, transparent 35%),
-      radial-gradient(circle at 70% 80%, var(--blob-2) 0%, transparent 50%),
-      radial-gradient(circle at 10% 90%, var(--blob-3) 0%, transparent 45%);
-    filter:blur(38px) saturate(1.15);
-    opacity:0.9;
+      radial-gradient(circle at 20% 15%, #C8EB8E 0%, transparent 45%),
+      radial-gradient(circle at 85% 10%, var(--accent) 0%, transparent 40%),
+      radial-gradient(circle at 70% 80%, #9AC46E 0%, transparent 55%),
+      radial-gradient(circle at 10% 90%, #A9D07E 0%, transparent 50%);
+    filter:blur(34px) saturate(1.15);
+    opacity:1;
   }
-  .hero-card::after{content:"";position:absolute;inset:0;z-index:-1;background:rgba(10,13,9,0.28);}
-  .hero-card .type-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);backdrop-filter:blur(6px);padding:5px 12px 5px 6px;border-radius:100px;margin-bottom:16px;}
-  .type-badge .dot{width:18px;height:18px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#0B0D10;}
+  .hero-card::after{content:"";position:absolute;inset:0;z-index:-1;background:rgba(255,255,255,0.06);}
+  .hero-card .type-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#fff;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);backdrop-filter:blur(6px);padding:5px 12px 5px 6px;border-radius:100px;margin-bottom:16px;}
+  .type-badge .dot{width:18px;height:18px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#5B7A3E;}
   .hero-metric{font-size:52px;font-weight:800;letter-spacing:-0.03em;line-height:1;margin:4px 0;}
-  .hero-metric .unit{font-size:20px;color:var(--text-dim);font-weight:600;margin-left:4px;}
+  .hero-metric .unit{font-size:20px;color:rgba(20,23,20,0.55);font-weight:600;margin-left:4px;}
   .hero-sub{color:var(--text-dim);font-size:14px;margin-top:4px;}
   .btn{border:none;border-radius:100px;padding:14px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);transition:transform .12s ease, opacity .12s ease;}
   .btn:active{transform:scale(0.97);}
@@ -107,23 +116,42 @@
   .bubble.user{background:var(--accent);color:#14171B;align-self:flex-end;border-bottom-right-radius:4px;font-weight:600;}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
   .chip{background:var(--bg-card);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,0.6);color:var(--text);padding:9px 16px;border-radius:100px;font-size:13px;cursor:pointer;font-weight:600;}
-  .chip:active{border-color:var(--accent-text);}
+  .chip:active{border-color:var(--accent-text);transform:scale(0.96);}
+  .navitem:active{transform:scale(0.94);}
+  .cal-cell:active{transform:scale(0.93);}
+  .card, .hero-card, .goal-card{animation:card-in .32s ease both;}
+  @keyframes card-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   .composer{position:sticky;bottom:0;display:flex;gap:8px;padding-top:10px;background:linear-gradient(0deg,var(--bg) 70%,transparent);}
   .composer input{flex:1;background:var(--bg-card);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,0.6);border-radius:100px;padding:13px 18px;color:var(--text);font-size:14px;font-family:var(--font);}
   .composer input:focus{outline:none;border-color:var(--accent-text);}
   .composer button{width:46px;height:46px;border-radius:50%;background:var(--accent);border:none;color:#0B0D10;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
   .icon-btn svg{width:100%;height:100%;}
-  .typing-dots{display:inline-flex;gap:4px;align-items:center;}
-  .typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--text-dim);animation:blink 1.2s infinite ease-in-out;}
-  .typing-dots span:nth-child(2){animation-delay:.2s;} .typing-dots span:nth-child(3){animation-delay:.4s;}
+  .runner-loader{display:inline-flex;flex-direction:column;align-items:center;gap:10px;}
+  .runner-loader .runner-icon{width:44px;height:44px;color:var(--accent-text);animation:runner-bob .55s ease-in-out infinite;}
+  .runner-loader .runner-label{font-size:12px;color:var(--text-dim);font-weight:600;}
+  .runner-icon .r-arm-back{transform-box:fill-box;transform-origin:100% 0%;animation:r-arm-back-swing .55s ease-in-out infinite;}
+  .runner-icon .r-arm-front{transform-box:fill-box;transform-origin:0% 100%;animation:r-arm-front-swing .55s ease-in-out infinite;}
+  .runner-icon .r-leg-back{transform-box:fill-box;transform-origin:100% 0%;animation:r-leg-back-swing .55s ease-in-out infinite;}
+  .runner-icon .r-leg-front{transform-box:fill-box;transform-origin:0% 0%;animation:r-leg-front-swing .55s ease-in-out infinite;}
+  @keyframes runner-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+  @keyframes r-leg-back-swing{0%,100%{transform:rotate(-28deg);}50%{transform:rotate(30deg);}}
+  @keyframes r-leg-front-swing{0%,100%{transform:rotate(30deg);}50%{transform:rotate(-28deg);}}
+  @keyframes r-arm-back-swing{0%,100%{transform:rotate(24deg);}50%{transform:rotate(-22deg);}}
+  @keyframes r-arm-front-swing{0%,100%{transform:rotate(-22deg);}50%{transform:rotate(24deg);}}
+  @keyframes sparkle-spin{0%,100%{transform:rotate(0deg) scale(1);}50%{transform:rotate(20deg) scale(1.12);}}
+  @keyframes bubble-in{from{opacity:0;transform:translateY(6px) scale(.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+  .bubble{animation:bubble-in .22s ease both;}
+  .fab-center .ico{}
+  .typing-cursor{display:inline-block;width:2px;height:1em;background:var(--accent-text);margin-left:2px;vertical-align:-2px;animation:blink .9s steps(1) infinite;}
   @keyframes blink{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
   .bottomnav{position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.6);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,0.7);margin:0 16px max(16px,env(safe-area-inset-bottom));border-radius:26px;padding:10px 14px;box-shadow:0 12px 30px rgba(20,23,20,0.1);}
   .navitem{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-dim);font-size:10px;font-weight:700;background:none;border:none;cursor:pointer;font-family:var(--font);padding:6px 8px;flex:1;}
   .navitem.active{color:var(--accent-text);}
   .navitem .ico{width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:0 auto;}
-  .fab-center{position:absolute;left:50%;top:-26px;transform:translateX(-50%);width:52px;height:52px;border-radius:50%;background:var(--accent);color:#0B0D10;border:4px solid var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(198,255,61,0.4);transition:transform .15s ease;}
+  .fab-center{position:absolute;left:50%;top:-26px;transform:translateX(-50%);width:52px;height:52px;border-radius:50%;background:var(--accent);color:#14171B;border:4px solid var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(183,226,58,0.5);transition:transform .15s ease;animation:fab-pulse 2.4s ease-in-out infinite;}
   .fab-center:active{transform:translateX(-50%) scale(0.9);}
   .fab-center .ico{width:22px;height:22px;}
+  @keyframes fab-pulse{0%,100%{box-shadow:0 6px 16px rgba(183,226,58,0.5);}50%{box-shadow:0 6px 22px rgba(183,226,58,0.85);}}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:16px;}
   .cal-cell{aspect-ratio:1;border-radius:10px;background:var(--bg-card);border:1.5px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim);cursor:pointer;position:relative;}
   .cal-cell .daynum{font-weight:700;color:var(--text);font-size:12px;}
@@ -131,7 +159,27 @@
   .cal-cell.done{border-color:var(--accent-text);}
   .cal-cell.partial{border-color:var(--warn);}
   .cal-cell.missed{border-color:var(--danger);}
+  .date-field{display:flex;align-items:center;justify-content:space-between;background:var(--bg-card);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1.5px solid rgba(255,255,255,0.6);border-radius:14px;padding:14px 16px;color:var(--text);font-size:14px;font-family:var(--font);cursor:pointer;}
+  .date-field .ico{color:var(--text-dim);}
+  .date-field:active{border-color:var(--accent-text);}
+  .datepicker-backdrop{position:fixed;inset:0;background:rgba(20,23,20,0.45);display:none;align-items:flex-end;justify-content:center;z-index:200;}
+  .datepicker-backdrop.active{display:flex;}
+  .datepicker-card{background:var(--bg-app,#F4F7EE);background:var(--bg-card,#fff);width:100%;max-width:440px;border-radius:26px 26px 0 0;padding:20px 20px max(20px,env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(20,23,20,0.18);animation:sheet-up .25s ease;}
+  @keyframes sheet-up{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .datepicker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .datepicker-header h3{font-size:15px;font-weight:800;}
+  .datepicker-nav{width:32px;height:32px;border-radius:50%;background:var(--bg-raised,rgba(20,23,20,0.06));display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);}
+  .datepicker-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .datepicker-daylabel{text-align:center;font-size:11px;color:var(--text-dim);font-weight:700;padding-bottom:4px;}
+  .datepicker-day{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;background:transparent;}
+  .datepicker-day:active{background:var(--bg-raised,rgba(20,23,20,0.08));}
+  .datepicker-day.today{border:1.5px solid var(--accent-text);}
+  .datepicker-day.selected{background:var(--accent);color:#14171B;font-weight:800;}
+  .datepicker-day.empty{visibility:hidden;cursor:default;}
+  .cal-cell.today .daynum{color:#14171B;}
+  .cal-cell.today{background:var(--accent);border-color:var(--accent);}
   .cal-cell.empty{visibility:hidden;}
+  .cal-cell.today::after{content:"";position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:#14171B;}
   .cal-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:11px;color:var(--text-dim);}
   .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
   .sheet-backdrop{position:fixed;inset:0;background:rgba(20,23,20,0.35);z-index:50;display:none;align-items:flex-end;justify-content:center;}
@@ -155,9 +203,21 @@
   .field-group input{background:var(--bg-card);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1.5px solid rgba(255,255,255,0.6);border-radius:14px;padding:14px 16px;color:var(--text);font-size:14px;font-family:var(--font);}
   .field-group input:focus{outline:none;border-color:var(--accent-text);}
   .link{color:var(--accent-text);font-weight:700;cursor:pointer;}
-  .plan-history-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;cursor:pointer;}
+  .plan-history-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;cursor:pointer;flex:1;}
   .plan-history-item:last-child{border-bottom:none;}
   .plan-history-item .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;}
+  .plan-row{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);}
+  .plan-row:last-child{border-bottom:none;}
+  .plan-delete-btn{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--danger);cursor:pointer;flex-shrink:0;transition:background .15s ease, transform .12s ease;}
+  .plan-delete-btn:active{transform:scale(0.9);background:rgba(225,75,75,0.12);}
+  .diff-row .edit-btn{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent-text);cursor:pointer;flex-shrink:0;}
+  .diff-row .edit-btn:active{background:rgba(183,226,58,0.18);}
+  .edit-fields{display:flex;flex-direction:column;gap:10px;padding:10px 0 14px;}
+  .followup-log{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+  .followup-composer{display:flex;gap:8px;margin-top:10px;}
+  .followup-composer input{flex:1;background:var(--bg-card);border:1px solid rgba(255,255,255,0.6);border-radius:100px;padding:10px 14px;font-size:13px;font-family:var(--font);color:var(--text);}
+  .followup-composer input:focus{outline:none;border-color:var(--accent-text);}
+  .followup-composer button{width:38px;height:38px;border-radius:50%;background:var(--accent);border:none;color:#0B0D10;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
   ::-webkit-scrollbar{display:none;}
 </style>
 </head>
@@ -167,15 +227,15 @@
   <!-- ===== SCREEN: LOADING ===== -->
   <div class="screen active" id="screen-loading" style="align-items:center;justify-content:center;">
     <div style="text-align:center;">
-      <div class="logo-mark" style="font-size:32px;">runflow</div>
-      <div class="typing-dots" style="justify-content:center;margin-top:14px;"><span></span><span></span><span></span></div>
+      <div class="logo-mark" style="font-size:40px;">Runny</div>
+      <div style="margin-top:18px;" id="loading-runner"></div>
     </div>
   </div>
 
   <!-- ===== SCREEN: AUTH (Login / Signup) ===== -->
   <div class="screen" id="screen-auth">
     <div style="margin-top:40px;text-align:center;">
-      <div class="logo-mark" style="font-size:26px;">runflow</div>
+      <div class="logo-mark" style="font-size:34px;">Runny</div>
       <h1 style="margin-top:6px;" id="auth-title">Willkommen zurück</h1>
       <p style="margin-top:8px;" id="auth-subtitle">Melde dich an, um deinen Plan zu sehen.</p>
     </div>
@@ -282,15 +342,17 @@
 
   <!-- ===== SCREEN: GENERATING ===== -->
   <div class="screen" id="screen-generating" style="align-items:center;justify-content:center;text-align:center;">
-    <div class="skeleton" style="width:100%;height:180px;border-radius:20px;"></div>
+    <div id="generating-runner"></div>
     <p style="margin-top:20px;">Dein Trainingsplan wird erstellt…</p>
   </div>
 
   <!-- ===== SCREEN: DASHBOARD ===== -->
   <div class="screen" id="screen-dashboard">
     <div class="topbar">
-      <span class="logo-mark" style="font-size:22px;">runflow</span>
-      <span class="icon-btn" id="topbar-profile" data-icon="person" style="width:32px;height:32px;border-radius:50%;background:var(--bg-card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text);"></span>
+      <span class="logo-mark" style="font-size:36px;">Runny</span>
+      <div class="topbar-actions">
+        <span class="icon-round" id="topbar-profile" data-icon="person"></span>
+      </div>
     </div>
     <div class="hero-card" id="today-card">
       <span class="type-badge">Heute</span>
@@ -334,7 +396,7 @@
   <!-- ===== SCREEN: ADJUST CHAT ===== -->
   <div class="screen" id="screen-adjust">
     <div class="topbar" style="padding:0 0 10px;">
-      <h2>Plan anpassen</h2>
+      <h2 id="adjust-title">Bob</h2>
       <span class="icon-btn" data-icon="close" id="adjust-close" style="width:20px;height:20px;cursor:pointer;color:var(--text-dim);"></span>
     </div>
     <div class="chat-log" id="adjust-chat-log"></div>
@@ -405,7 +467,7 @@
     <button class="navitem" data-tab="calendar"><span class="ico" data-icon="calendar"></span>Kalender</button>
     <button class="navitem" data-tab="progress"><span class="ico" data-icon="chart"></span>Fortschritt</button>
     <button class="navitem" data-tab="profile"><span class="ico" data-icon="person"></span>Profil</button>
-    <button class="fab-center" id="fab-adjust" aria-label="Plan anpassen"><span class="ico" data-icon="plus"></span></button>
+    <button class="fab-center" id="fab-adjust" aria-label="Bob"><span class="ico" data-icon="sparkle"></span></button>
   </div>
 
 </div>
@@ -418,6 +480,9 @@
   </div>
 </div>
 
+<div class="datepicker-backdrop" id="datepicker-backdrop">
+  <div class="datepicker-card" id="datepicker-card"></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -543,7 +608,7 @@ async function callAI(systemPrompt, messages, jsonMode = false) {
 // Bob's Foto-Analyse: erkennt Distanz/Zeit/Pace/Datum aus einem Lauf-Screenshot
 // (z.B. Strava, Garmin, Apple Watch, Adidas Running, Nike Run Club) und wertet
 // den Lauf inhaltlich aus (Splits, Tempoverlauf, Herzfrequenz, Einordnung).
-const VISION_SYSTEM_PROMPT = `Du bist Bob, ein erfahrener KI-Lauf-Coach von RunFlow. Du bekommst einen Screenshot eines Laufergebnisses
+const VISION_SYSTEM_PROMPT = `Du bist Bob, ein erfahrener KI-Lauf-Coach von Runny. Du bekommst einen Screenshot eines Laufergebnisses
 (z.B. aus Strava, Garmin, Apple Watch, Adidas Running, Nike Run Club, Polar, Whoop). Analysiere das Bild GENAU:
 - Lies alle sichtbaren Werte ab: Distanz, Gesamtzeit, Ø-Pace, Datum/Uhrzeit, Höhenmeter, Herzfrequenz (Ø/Max), Kalorien, Kadenz, falls vorhanden.
 - Falls einzelne Kilometer-Splits sichtbar sind, lies sie aus und beurteile den Tempoverlauf (z.B. negativ gesplittet, gleichmäßig, im späteren Verlauf eingebrochen).
@@ -635,13 +700,104 @@ const ICON_PATHS = {
   run: '<circle cx="15.5" cy="5.5" r="1.6"/><path d="M9 21l2.5-4.5-2-2 1-4 3.5 2 1.5 3.5 3 1M6 12l3-1.5 2.5 2"/>',
   moon: '<path d="M19 13.5A7.5 7.5 0 1 1 10.5 5 6 6 0 0 0 19 13.5Z"/>',
   flag: '<path d="M6 21V4"/><path d="M6 5h11l-2.5 3L17 11H6"/>',
-  chart: '<path d="M4 20V10M11 20V4M18 20v-7"/><path d="M3 20h18"/>'
+  chart: '<path d="M4 20V10M11 20V4M18 20v-7"/><path d="M3 20h18"/>',
+  sparkle: '<path d="M12 3c.4 3.2 1.4 4.2 4.6 4.6-3.2.4-4.2 1.4-4.6 4.6-.4-3.2-1.4-4.2-4.6-4.6C10.6 7.2 11.6 6.2 12 3Z"/><path d="M19 14c.2 1.6.7 2.1 2.3 2.3-1.6.2-2.1.7-2.3 2.3-.2-1.6-.7-2.1-2.3-2.3 1.6-.2 2.1-.7 2.3-2.3Z"/><path d="M6 15c.15 1.2.5 1.6 1.7 1.7-1.2.15-1.6.5-1.7 1.7-.15-1.2-.5-1.6-1.7-1.7 1.2-.15 1.6-.5 1.7-1.7Z"/>',
+  edit: '<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M13.5 6.5l3 3"/>',
+  trash: '<path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12"/>'
 };
 function svgIcon(name, size) {
   const p = ICON_PATHS[name];
   if (!p) return '';
   const s = size || 20;
   return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+}
+function formatDateDE(dateStr) {
+  if (!dateStr) return '–';
+  const [y,m,d] = dateStr.split('-');
+  const months = ["Jan","Feb","März","Apr","Mai","Juni","Juli","Aug","Sep","Okt","Nov","Dez"];
+  return `${parseInt(d,10)}. ${months[parseInt(m,10)-1]} ${y}`;
+}
+// Rendert ein Datumsfeld im App-Stil, das den eigenen Datepicker öffnet statt des Browser-Kalenders.
+function dateFieldHTML(id, value, label) {
+  return `
+    <div class="field-group">
+      <label>${label}</label>
+      <div class="date-field" id="${id}-field" data-value="${value}">
+        <span id="${id}-display">${formatDateDE(value)}</span>
+        <span class="ico">${svgIcon('calendar', 17)}</span>
+      </div>
+      <input type="hidden" id="${id}" value="${value}">
+    </div>`;
+}
+function wireDateField(id) {
+  const field = document.getElementById(`${id}-field`);
+  if (!field) return;
+  field.addEventListener('click', () => {
+    openDatePicker(field.dataset.value, (picked) => {
+      field.dataset.value = picked;
+      document.getElementById(id).value = picked;
+      document.getElementById(`${id}-display`).textContent = formatDateDE(picked);
+    });
+  });
+}
+let _dpMonth = new Date();
+function openDatePicker(initialValue, onPick) {
+  _dpMonth = initialValue ? new Date(initialValue + 'T00:00:00') : new Date();
+  renderDatePicker(initialValue, onPick);
+  document.getElementById('datepicker-backdrop').classList.add('active');
+}
+function closeDatePicker() {
+  document.getElementById('datepicker-backdrop').classList.remove('active');
+}
+function renderDatePicker(selectedValue, onPick) {
+  const card = document.getElementById('datepicker-card');
+  const monthNames = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+  const year = _dpMonth.getFullYear(), month = _dpMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0,10);
+  let cells = '';
+  for (let i=0;i<startOffset;i++) cells += `<span class="datepicker-day empty"></span>`;
+  for (let day=1; day<=daysInMonth; day++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    let cls = 'datepicker-day';
+    if (dateStr === todayStr) cls += ' today';
+    if (dateStr === selectedValue) cls += ' selected';
+    cells += `<span class="${cls}" data-date="${dateStr}">${day}</span>`;
+  }
+  card.innerHTML = `
+    <div class="datepicker-header">
+      <span class="datepicker-nav" id="dp-prev">${svgIcon('chevron-left', 16)}</span>
+      <h3>${monthNames[month]} ${year}</h3>
+      <span class="datepicker-nav" id="dp-next">${svgIcon('chevron-right', 16)}</span>
+    </div>
+    <div class="datepicker-grid">
+      ${['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => `<span class="datepicker-daylabel">${d}</span>`).join('')}
+      ${cells}
+    </div>`;
+  card.querySelectorAll('.datepicker-day[data-date]').forEach(el => {
+    el.addEventListener('click', () => { onPick(el.dataset.date); closeDatePicker(); });
+  });
+  document.getElementById('dp-prev').addEventListener('click', () => { _dpMonth.setMonth(_dpMonth.getMonth()-1); renderDatePicker(selectedValue, onPick); });
+  document.getElementById('dp-next').addEventListener('click', () => { _dpMonth.setMonth(_dpMonth.getMonth()+1); renderDatePicker(selectedValue, onPick); });
+}
+document.getElementById('datepicker-backdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'datepicker-backdrop') closeDatePicker();
+});
+
+function runnerFigureSVG() {
+  return `<svg class="runner-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="19" cy="7" r="2.6"/>
+    <path d="M16 10 L14 17"/>
+    <g class="r-arm-back"><path d="M15 12 L10 15"/></g>
+    <g class="r-arm-front"><path d="M15 12 L19 9"/></g>
+    <g class="r-leg-back"><path d="M16 22 L11 27 L14 30"/></g>
+    <g class="r-leg-front"><path d="M16 22 L21 26 L19 30"/></g>
+  </svg>`;
+}
+function runnerLoaderHTML(label) {
+  return `<div class="runner-loader">${runnerFigureSVG()}${label ? `<span class="runner-label">${label}</span>` : ''}</div>`;
 }
 function mountIcons(root) {
   (root || document).querySelectorAll('[data-icon]').forEach(el => {
@@ -794,7 +950,7 @@ document.querySelectorAll('.navitem').forEach(btn => {
     if (tab === 'profile') { showScreen('profile'); setNav('profile'); renderProfile(); }
   });
 });
-document.getElementById('fab-adjust').addEventListener('click', openAdjustSheet);
+document.getElementById('fab-adjust').addEventListener('click', () => openAdjustSheet('chat'));
 
 // ---------- 6. ONBOARDING: ZIEL WÄHLEN ----------
 document.querySelectorAll('.goal-card').forEach(card => {
@@ -854,11 +1010,48 @@ function addBubble(logId, text, who) {
   return b;
 }
 
+// Lässt Text wie bei einer KI Zeichen für Zeichen erscheinen.
+function typeText(el, text, speed) {
+  return new Promise(resolve => {
+    el.textContent = '';
+    el.style.padding = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'typing-cursor';
+    el.appendChild(cursor);
+    let i = 0;
+    const step = () => {
+      if (i < text.length) {
+        cursor.insertAdjacentText('beforebegin', text[i]);
+        i++;
+        const log = el.closest('.chat-log');
+        if (log) log.scrollTop = log.scrollHeight;
+        setTimeout(step, speed || 14);
+      } else {
+        cursor.remove();
+        resolve();
+      }
+    };
+    step();
+  });
+}
+
+// Fügt eine KI-Bubble hinzu, deren Text nach und nach eingetippt wird.
+async function addBubbleTyped(logId, text, speed) {
+  const log = document.getElementById(logId);
+  const b = document.createElement('div');
+  b.className = 'bubble ai';
+  log.appendChild(b);
+  log.scrollTop = log.scrollHeight;
+  await typeText(b, text, speed);
+  return b;
+}
+
 function addTypingBubble(logId) {
   const log = document.getElementById(logId);
   const b = document.createElement('div');
   b.className = 'bubble ai';
-  b.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
+  b.innerHTML = runnerLoaderHTML();
+  b.style.padding = '10px 16px';
   log.appendChild(b);
   log.scrollTop = log.scrollHeight;
   return b;
@@ -874,8 +1067,8 @@ function askNextOnboardQuestion() {
   document.getElementById('onboard-progress').textContent = `Frage ${step+1}/${ONBOARD_QUESTIONS.length}`;
   const q = ONBOARD_QUESTIONS[step];
   const typing = addTypingBubble('onboard-chat-log');
-  setTimeout(() => {
-    typing.textContent = q.q;
+  setTimeout(async () => {
+    await typeText(typing, q.q);
     renderChips('onboard-chips', q.chips, (val) => submitOnboardAnswer(val));
   }, 500);
 }
@@ -920,18 +1113,28 @@ function renderPreview(result) {
   document.getElementById('preview-content').innerHTML = `
     <div class="hero-metric">${result.weeks_total}<span class="unit">Wochen</span></div>
     <div class="hero-sub">${result.summary}</div>
-    ${result.reasoning ? `<p style="margin-top:14px;color:rgba(245,247,240,0.75);font-size:13px;line-height:1.6;">${result.reasoning}</p>` : ''}
+    ${result.reasoning ? `<p style="margin-top:14px;color:rgba(20,23,20,0.72);font-size:13px;line-height:1.6;">${result.reasoning}</p>` : ''}
   `;
   showScreen('preview');
 }
 
-const PLAN_JSON_SCHEMA_PROMPT = `Erzeuge NUR ein JSON-Objekt (kein Freitext, keine Markdown-Codeblöcke) mit diesem Schema:
+const PLAN_JSON_SCHEMA_PROMPT = `Du bist ein erfahrener Laufcoach mit fundiertem Wissen über Trainingsperiodisierung, Trainingswissenschaft und Belastungssteuerung.
+Erstelle einen vollständigen, hochwertigen Trainingsplan – so, wie ihn ein echter Coach individuell für genau diesen Menschen zusammenstellen würde. Berücksichtige dabei folgende Prinzipien:
+
+1. PERIODISIERUNG: Baue den Plan in sinnvolle Phasen auf (z.B. Grundlagenausdauer/Aufbauphase → spezifische Phase → Tapering/Rennwoche bei Wettkampfzielen). Die Trainingsbelastung soll wellenförmig ansteigen, nicht linear – plane alle 3-4 Wochen eine leichtere Regenerationswoche ein (reduziertes Volumen), bevor die Belastung weiter gesteigert wird.
+2. 80/20-PRINZIP: Der Großteil der Läufe (ca. 80%) soll lockeres, konversationelles Tempo sein (easy), nur ein kleinerer Anteil (ca. 20%) intensiv (intervall/Tempo). Vermeide zu viele harte Einheiten hintereinander – auf einen intensiven Tag sollte in der Regel ein lockerer Tag oder Ruhetag folgen.
+3. PROGRESSION: Steigere Umfang und/oder Intensität graduell (Faustregel: nicht mehr als ca. 10% Steigerung des Wochenumfangs pro Woche). Der lange Lauf (long_run) sollte über die Wochen langsam anwachsen und nicht abrupt springen.
+4. INDIVIDUALISIERUNG: Passe Trainingstage-pro-Woche, Startniveau, verfügbare Zeit und ggf. Einschränkungen exakt an die gegebenen Onboarding-Antworten an. Ein kompletter Laufanfänger braucht andere Einheiten (z.B. Gehen/Laufen-Intervalle, kurze Distanzen, viele Ruhetage) als jemand mit Lauferfahrung.
+5. ABWECHSLUNG & KLARHEIT: Jede Einheit braucht eine konkrete, umsetzbare Beschreibung (z.B. bei Intervallen: Anzahl Wiederholungen, Distanz/Zeit pro Intervall, Pace, Erholungsdauer; bei long_run: Ziel-Tempo und ggf. Tempowechsel; bei easy: einfach lockeres Tempo, Fokus auf Regeneration).
+6. REALISTISCHE ZIELPACE: Die abschließenden Wochen sollen auf die tatsächliche Zielpace/Zielzeit hinführen, sodass der Nutzer am Ende des Plans in der Lage ist, sein Ziel realistisch zu erreichen.
+
+Erzeuge NUR ein JSON-Objekt (kein Freitext, keine Markdown-Codeblöcke) mit diesem Schema:
 {
   "summary": "1 Satz Zusammenfassung, z.B. '12 Wochen, 4x/Woche, Ziel: Sub-50-Minuten-10k'",
-  "reasoning": "3-5 Sätze auf Deutsch: erkläre wie ein persönlicher Coach, warum dieser Plan (Wochenstruktur, Progression, Verteilung von locker/hart) für dieses Ziel und dieses Ausgangsniveau sinnvoll ist",
+  "reasoning": "4-6 Sätze auf Deutsch: erkläre wie ein persönlicher Coach ausführlich, warum dieser Plan (Phasenaufbau, Wochenstruktur, Verteilung locker/hart, Progression, Regenerationswochen) für dieses Ziel und dieses Ausgangsniveau sinnvoll ist",
   "weeks_total": number,
   "workouts": [
-    { "week": number, "weekday": "Mo|Di|Mi|Do|Fr|Sa|So", "type": "easy|intervall|long_run|rest", "distance_km": number, "pace_sec_per_km": number, "description": "kurze Beschreibung, was in diesem Training konkret zu tun ist" }
+    { "week": number, "weekday": "Mo|Di|Mi|Do|Fr|Sa|So", "type": "easy|intervall|long_run|rest", "distance_km": number, "pace_sec_per_km": number, "description": "konkrete, ausführliche Beschreibung, was in diesem Training genau zu tun ist (inkl. Struktur bei Intervallen/langem Lauf)" }
   ]
 }
 Erzeuge einen realistischen, progressiven Plan basierend auf Ziel und Antworten. Bei 'rest' ist distance_km 0.
@@ -945,11 +1148,23 @@ function pastRunsSummary() {
   return runs.map(r => `${r.date || '?'}: ${r.distance_km ?? '?'} km in ${r.duration_sec ? Math.round(r.duration_sec/60) : '?'} min (Pace ${paceLabel(r.pace_sec_per_km)}/km)`).join('; ');
 }
 
+// Persönlicher Kontext, der jedem Bob-Prompt mitgegeben wird, damit Antworten sich nicht generisch/unpersönlich anfühlen.
+function personalizationContext() {
+  const user = firebaseReady && auth.currentUser;
+  const name = user && user.displayName ? user.displayName : null;
+  const plan = state.plan;
+  const parts = [];
+  parts.push(name ? `Name des Nutzers: ${name}.` : `Name des Nutzers: unbekannt.`);
+  if (plan) parts.push(`Aktueller Plan: ${plan.summary || plan.goal} (Woche läuft, ${plan.weeks_total || '?'} Wochen gesamt).`);
+  return parts.join(' ');
+}
+const BOB_PERSONA_RULE = `Sprich den Nutzer immer direkt und persönlich mit "du" an — sag z.B. "weil du krank bist" statt "da der Nutzer krank ist". Sprich NIE in der dritten Person von "der Nutzer" oder "dem Athleten". Nutze den Namen des Nutzers hin und wieder, wenn er bekannt ist, und beziehe dich konkret auf sein Ziel bzw. seinen Plan statt allgemein zu bleiben.`;
+
 async function finishOnboardingChat() {
   const typing = addTypingBubble('onboard-chat-log');
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von RunFlow. Antworte ausschließlich auf Deutsch.\n${PLAN_JSON_SCHEMA_PROMPT}`;
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte ausschließlich auf Deutsch.\n${BOB_PERSONA_RULE}\n${PLAN_JSON_SCHEMA_PROMPT}`;
   const goalDescription = state.goal === 'eigenes_ziel' ? state.goalCustomText : state.goal;
-  const userMsg = `Ziel: ${goalDescription}. Antworten: ${JSON.stringify(state.onboardAnswers)}. Frühere Läufe zur Pace-Kalibrierung: ${pastRunsSummary()}`;
+  const userMsg = `${personalizationContext()}\nZiel: ${goalDescription}. Antworten: ${JSON.stringify(state.onboardAnswers)}. Frühere Läufe zur Pace-Kalibrierung: ${pastRunsSummary()}`;
   const result = await callAI(systemPrompt, [{ role: "user", content: userMsg }], true);
   typing.remove();
   if (!result) { toast("Bob konnte den Plan gerade nicht erstellen."); return; }
@@ -959,7 +1174,7 @@ async function finishOnboardingChat() {
 async function refinePlanFromFeedback(text) {
   addBubble('onboard-chat-log', text, 'user');
   const typing = addTypingBubble('onboard-chat-log');
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von RunFlow. Antworte ausschließlich auf Deutsch.
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte ausschließlich auf Deutsch.
 Du hast bereits einen Planentwurf erstellt. Der Nutzer möchte diesen Entwurf anpassen.
 ${PLAN_JSON_SCHEMA_PROMPT}`;
   const goalDescription = state.goal === 'eigenes_ziel' ? state.goalCustomText : state.goal;
@@ -982,6 +1197,7 @@ document.getElementById('btn-adjust-preview').addEventListener('click', () => {
 
 document.getElementById('btn-create-plan').addEventListener('click', async () => {
   showScreen('generating');
+  document.getElementById('generating-runner').innerHTML = runnerLoaderHTML();
   const plan = state.pendingPlan;
   const planId = crypto.randomUUID();
   const planDoc = {
@@ -1161,7 +1377,7 @@ async function processRunPhoto(file) {
   const context = state.photoUploadContext;
   if (context === 'onboarding') {
     const statusEl = document.getElementById('past-runs-status');
-    statusEl.innerHTML = `<p style="display:flex;align-items:center;gap:8px;"><span class="typing-dots"><span></span><span></span><span></span></span> Bob analysiert das Foto…</p>`;
+    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;">${runnerLoaderHTML()}<span>Bob analysiert das Foto…</span></div>`;
     const result = await analyzePhotoFile(file);
     statusEl.innerHTML = '';
     if (!result) { toast("Bob konnte darauf leider kein Laufergebnis erkennen."); return; }
@@ -1199,14 +1415,11 @@ function openPhotoReviewSheet(result, preselectedWorkoutId) {
   ].filter(Boolean);
   content.innerHTML = `
     <h3>Bobs Analyse</h3>
-    <p style="margin-top:8px;white-space:pre-line;">${result.notes || 'Laufergebnis erkannt.'}</p>
+    <p style="margin-top:8px;white-space:pre-line;" id="rev-notes"></p>
     ${metaChips.length ? `<div class="chips" style="margin-top:10px;">${metaChips.map(c => `<span class="chip" style="cursor:default;">${c}</span>`).join('')}</div>` : ''}
     ${result.splits && result.splits.length ? `<div class="card" style="margin-top:14px;padding:14px 20px;"><p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Splits</p><p style="color:var(--text);font-size:13px;">${result.splits.join(' · ')}</p></div>` : ''}
     <div style="margin-top:18px;display:flex;flex-direction:column;gap:12px;">
-      <div class="field-group">
-        <label>Datum</label>
-        <input type="date" id="rev-date" value="${result.date || new Date().toISOString().slice(0,10)}">
-      </div>
+      ${dateFieldHTML('rev-date', result.date || new Date().toISOString().slice(0,10), 'Datum')}
       <div class="field-group">
         <label>Distanz (km)</label>
         <input type="number" step="0.1" id="rev-distance" value="${result.distance_km ?? ''}">
@@ -1218,8 +1431,25 @@ function openPhotoReviewSheet(result, preselectedWorkoutId) {
     </div>
     <p class="fieldnote" style="margin-top:12px;">${matched ? `Wird mit "${typeLabel(matched.type)}" am ${matched.scheduled_date} verknüpft.` : 'Kein passendes geplantes Training gefunden — wird als eigenständiger Lauf gespeichert.'}</p>
     <button class="btn btn-primary" style="margin-top:16px;" id="rev-confirm">Übernehmen</button>
+    <p class="fieldnote" style="margin-top:18px;">Noch etwas zu diesem Lauf fragen?</p>
+    <div class="followup-log" id="rev-followup-log"></div>
+    <div class="followup-composer">
+      <input type="text" id="rev-followup-input" placeholder="Frage an Bob…">
+      <button id="rev-followup-send">${svgIcon('arrow-up', 18)}</button>
+    </div>
   `;
+  wireDateField('rev-date');
   document.getElementById('rev-confirm').addEventListener('click', () => confirmPhotoLog(matched ? matched.id : null, result));
+  typeText(document.getElementById('rev-notes'), result.notes || 'Laufergebnis erkannt.');
+  const sendFollowup = () => {
+    const input = document.getElementById('rev-followup-input');
+    const val = input.value.trim();
+    if (!val) return;
+    input.value = '';
+    askRunFollowup(val, result, matched);
+  };
+  document.getElementById('rev-followup-send').addEventListener('click', sendFollowup);
+  document.getElementById('rev-followup-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendFollowup(); });
   document.getElementById('sheet-backdrop').classList.add('active');
 }
 
@@ -1274,7 +1504,7 @@ document.getElementById('past-runs-upload-zone').addEventListener('click', () =>
 document.getElementById('btn-past-runs-next').addEventListener('click', startOnboardChat);
 document.getElementById('btn-past-runs-skip').addEventListener('click', startOnboardChat);
 
-document.getElementById('qa-adjust').addEventListener('click', openAdjustSheet);
+document.getElementById('qa-adjust').addEventListener('click', () => openAdjustSheet('plan'));
 document.getElementById('qa-photo').addEventListener('click', () => {
   state.photoUploadContext = 'log';
   state.photoUploadWorkoutId = null;
@@ -1304,6 +1534,7 @@ function renderCalendar() {
   for (let i=0;i<startOffset;i++) {
     const empty = document.createElement('div'); empty.className='cal-cell empty'; grid.appendChild(empty);
   }
+  const todayStr = new Date().toISOString().slice(0,10);
   for (let day=1; day<=daysInMonth; day++) {
     const dateStr = new Date(year, month, day).toISOString().slice(0,10);
     const w = state.workouts.find(w => w.scheduled_date === dateStr);
@@ -1316,6 +1547,7 @@ function renderCalendar() {
       else if (w.status === 'missed') cls += ' missed';
       else if (w.status === 'modified') cls += ' partial';
     }
+    if (dateStr === todayStr) cls += ' today';
     cell.className = cls;
     cell.innerHTML = `<div class="daynum">${day}</div><div class="ico" style="width:13px;height:13px;margin-top:2px;">${icon ? svgIcon(icon) : ''}</div>`;
     cell.addEventListener('click', () => openDaySheet(dateStr, w));
@@ -1354,13 +1586,20 @@ document.getElementById('sheet-backdrop').addEventListener('click', e => {
 });
 
 // ---------- 9. PLAN-ANPASSUNG (Chat + Diff) ----------
-function openAdjustSheet() {
+function openAdjustSheet(mode) {
   showScreen('adjust');
+  document.getElementById('bottomnav').style.display = 'none';
+  state.adjustMode = mode === 'plan' ? 'plan' : 'chat';
   document.getElementById('adjust-chat-log').innerHTML = '';
   document.getElementById('adjust-diff-container').innerHTML = '';
-  addBubble('adjust-chat-log', "Wie kann ich deinen Plan anpassen?", 'ai');
+  const isPlainChat = state.adjustMode === 'chat';
+  document.getElementById('adjust-title').textContent = 'Bob';
+  document.getElementById('adjust-chips').style.display = isPlainChat ? 'none' : 'flex';
+  addBubbleTyped('adjust-chat-log', isPlainChat ? "Hey, wie kann ich dir helfen?" : "Wie kann ich deinen Plan anpassen?");
 }
+document.getElementById('btn-reset').addEventListener('click', endActivePlan);
 document.getElementById('adjust-close').addEventListener('click', () => {
+  document.getElementById('bottomnav').style.display = 'flex';
   showScreen('dashboard'); setNav('dashboard'); renderDashboard();
 });
 document.querySelectorAll('#adjust-chips .chip').forEach(chip => {
@@ -1379,17 +1618,30 @@ document.getElementById('adjust-input').addEventListener('keydown', e => {
 async function submitAdjustPrompt(text) {
   addBubble('adjust-chat-log', text, 'user');
   const typing = addTypingBubble('adjust-chat-log');
+
+  if (state.adjustMode !== 'plan') {
+    const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte auf Deutsch in 2-5 kurzen, natürlichen Sätzen (kein JSON, kein Fließtextblock).
+${BOB_PERSONA_RULE}
+Das ist ein freier Chat, kein Plan-Anpassungs-Formular — beantworte die Frage/Nachricht des Nutzers direkt (z.B. Motivation, Trainingsfragen, Small Talk). Schlage nur dann konkrete Plan-Änderungen vor, wenn danach gefragt wird, und weise in dem Fall darauf hin, dass er das über "Plan anpassen" im Dashboard konkret umsetzen kann.`;
+    const userMsg = `${personalizationContext()}\n\nNachricht des Nutzers: "${text}"`;
+    const result = await callAI(systemPrompt, [{ role: "user", content: userMsg }], false);
+    typing.remove();
+    await addBubbleTyped('adjust-chat-log', result || "Entschuldigung, dazu kann ich gerade nichts sagen.");
+    return;
+  }
+
   const upcoming = state.workouts.filter(w => w.scheduled_date >= new Date().toISOString().slice(0,10)).slice(0,10);
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von RunFlow. Antworte auf Deutsch.
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte auf Deutsch.
+${BOB_PERSONA_RULE}
 Gib NUR ein JSON-Objekt zurück (kein Freitext davor/danach):
-{ "reasoning": "kurze Erklärung der Änderung in 1-2 Sätzen",
+{ "reasoning": "kurze, persönliche Erklärung der Änderung in 1-2 Sätzen, direkt an den Nutzer gerichtet (du-Form)",
   "updatedWorkouts": [ { "id": "workout_id", "target_distance_km": number, "target_pace_sec_per_km": number, "type": "easy|intervall|long_run|rest", "scheduled_date": "YYYY-MM-DD" } ] }
 Ändere nur Workouts, die tatsächlich betroffen sind. Nutze existierende IDs aus den bereitgestellten Workouts.`;
-  const userMsg = `Kommende Workouts: ${JSON.stringify(upcoming)}\n\nNachricht des Nutzers: "${text}"`;
+  const userMsg = `${personalizationContext()}\nKommende Workouts: ${JSON.stringify(upcoming)}\n\nNachricht des Nutzers: "${text}"`;
   const result = await callAI(systemPrompt, [{ role: "user", content: userMsg }], true);
   typing.remove();
-  if (!result) { addBubble('adjust-chat-log', "Entschuldigung, die Anpassung ist gerade nicht verfügbar.", 'ai'); return; }
-  addBubble('adjust-chat-log', result.reasoning, 'ai');
+  if (!result) { await addBubbleTyped('adjust-chat-log', "Entschuldigung, die Anpassung ist gerade nicht verfügbar."); return; }
+  await addBubbleTyped('adjust-chat-log', result.reasoning);
   renderDiff(result.updatedWorkouts);
 }
 
@@ -1483,46 +1735,23 @@ function renderProfile() {
     const statusLabel = p.status === 'active' ? 'Aktiv' : 'Beendet';
     const date = p.created_at ? new Date(p.created_at).toLocaleDateString('de-DE') : '';
     return `
-    <div class="plan-swipe-wrap" style="position:relative;overflow:hidden;border-bottom:1px solid var(--border);">
-      <div class="plan-swipe-delete" data-plan-id="${p.id}" style="position:absolute;inset:0;background:var(--danger);display:flex;align-items:center;justify-content:flex-end;padding-right:22px;cursor:pointer;">
-        <span style="color:#fff;font-weight:700;font-size:13px;">Löschen</span>
-      </div>
-      <div class="plan-history-item" data-plan-id="${p.id}" style="background:rgba(255,255,255,0.92);position:relative;transition:transform .2s ease;touch-action:pan-y;padding:14px 0;">
+    <div class="plan-row">
+      <div class="plan-history-item" data-plan-id="${p.id}">
         <div>
           <div style="font-weight:700;font-size:14px;">${p.summary || p.goal}</div>
           <div style="font-size:12px;color:var(--text-dim);margin-top:2px;"><span class="status-dot" style="background:${statusColor};"></span>${statusLabel} · ${date}</div>
         </div>
         <span style="color:var(--text-dim);">${svgIcon('chevron-right', 16)}</span>
       </div>
+      <span class="plan-delete-btn" data-plan-id="${p.id}" title="Plan löschen">${svgIcon('trash', 17)}</span>
     </div>`;
   }).join('');
 
-  list.querySelectorAll('.plan-swipe-wrap').forEach(wrap => {
-    const front = wrap.querySelector('.plan-history-item');
-    const deleteBg = wrap.querySelector('.plan-swipe-delete');
-    let startX = 0, currentX = 0, dragging = false, moved = false;
-
-    front.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX; dragging = true; moved = false; front.style.transition = 'none';
-    }, { passive: true });
-    front.addEventListener('touchmove', (e) => {
-      if (!dragging) return;
-      const dx = e.touches[0].clientX - startX;
-      if (Math.abs(dx) > 6) moved = true;
-      currentX = Math.min(0, Math.max(dx, -88));
-      front.style.transform = `translateX(${currentX}px)`;
-    }, { passive: true });
-    front.addEventListener('touchend', () => {
-      dragging = false;
-      front.style.transition = 'transform .2s ease';
-      if (currentX < -44) { front.style.transform = 'translateX(-88px)'; currentX = -88; }
-      else { front.style.transform = 'translateX(0)'; currentX = 0; }
-    });
-    front.addEventListener('click', () => {
-      if (moved || currentX !== 0) { moved = false; return; }
-      openPlanDetail(front.dataset.planId);
-    });
-    deleteBg.addEventListener('click', () => confirmDeletePlan(deleteBg.dataset.planId));
+  list.querySelectorAll('.plan-history-item').forEach(front => {
+    front.addEventListener('click', () => openPlanDetail(front.dataset.planId));
+  });
+  list.querySelectorAll('.plan-delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); confirmDeletePlan(btn.dataset.planId); });
   });
 }
 
@@ -1571,13 +1800,24 @@ async function openPlanDetail(planId) {
     <p style="margin-top:6px;">${plan.weeks_total} Wochen · ${plan.status === 'active' ? 'Aktiver Plan' : 'Beendet'}</p>
     ${plan.reasoning ? `<div class="card" style="margin-top:14px;padding:16px;"><p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Bobs Begründung für diesen Plan</p><p style="color:var(--text);font-size:13px;line-height:1.6;">${plan.reasoning}</p></div>` : ''}
     <p class="fieldnote" style="margin-top:12px;">Tippe auf einen Tag für Bobs Tipp dazu.</p>
-    <div class="card" id="plan-detail-workouts" style="margin-top:8px;max-height:38vh;overflow-y:auto;padding:6px 20px;">
-      ${sorted.map(w => `<div class="diff-row" data-workout-id="${w.id}" style="cursor:pointer;"><span>${w.scheduled_date} · ${typeLabel(w.type)}</span><span>${w.target_distance_km} km</span></div>`).join('') || '<p style="padding:10px 0;">Keine Workouts gefunden.</p>'}
+    <div class="card" id="plan-detail-workouts" style="margin-top:8px;max-height:44vh;overflow-y:auto;padding:6px 20px;">
+      ${sorted.map(w => `
+        <div class="diff-row" data-row-id="${w.id}">
+          <span class="diff-view-tip" data-workout-id="${w.id}" style="cursor:pointer;flex:1;">${w.scheduled_date} · ${typeLabel(w.type)}</span>
+          <span class="diff-view-tip" data-workout-id="${w.id}" style="cursor:pointer;">${w.target_distance_km} km</span>
+          ${isActivePlan ? `<span class="edit-btn" data-edit-id="${w.id}">${svgIcon('edit', 16)}</span>` : ''}
+        </div>`).join('') || '<p style="padding:10px 0;">Keine Workouts gefunden.</p>'}
     </div>
     ${isActivePlan ? `<button class="btn" style="margin-top:18px;width:100%;background:var(--danger);color:#fff;" id="plan-detail-end">Plan beenden</button>` : ''}
   `;
-  content.querySelectorAll('[data-workout-id]').forEach(el => {
+  content.querySelectorAll('.diff-view-tip').forEach(el => {
     el.addEventListener('click', () => openWorkoutTipSheet(workouts.find(w => w.id === el.dataset.workoutId), planId));
+  });
+  content.querySelectorAll('[data-edit-id]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditWorkoutRow(workouts.find(w => w.id === el.dataset.editId), planId);
+    });
   });
   if (isActivePlan) {
     document.getElementById('plan-detail-end').addEventListener('click', endActivePlan);
@@ -1587,10 +1827,11 @@ async function openPlanDetail(planId) {
 
 // Bobs Tipp zu einem einzelnen Trainingstag: WARUM dieses Training + konkrete Ausführungstipps.
 async function getWorkoutTip(workout) {
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von RunFlow. Antworte auf Deutsch in 2-4 kurzen Sätzen, kein JSON, nur Fließtext.
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte auf Deutsch in 2-4 kurzen Sätzen, kein JSON, nur Fließtext.
+${BOB_PERSONA_RULE}
 Erkläre kurz, WARUM dieses Training in dieser Form im Trainingsplan sinnvoll ist (welcher Trainingsreiz, welche Funktion im Wochenaufbau),
 und gib 1-2 konkrete, umsetzbare Tipps zur Ausführung (z.B. Pacing-Strategie, Atmung, mentale Herangehensweise, worauf zu achten ist).`;
-  const userMsg = `Training: ${typeLabel(workout.type)}, ${workout.target_distance_km} km, Zielpace ${paceLabel(workout.target_pace_sec_per_km)}/km. Beschreibung: ${workout.description || 'keine'}.`;
+  const userMsg = `${personalizationContext()}\nTraining: ${typeLabel(workout.type)}, ${workout.target_distance_km} km, Zielpace ${paceLabel(workout.target_pace_sec_per_km)}/km. Beschreibung: ${workout.description || 'keine'}.`;
   const result = await callAI(systemPrompt, [{ role: "user", content: userMsg }], false);
   return result || "Bob konnte gerade keinen Tipp erstellen. Versuch es später nochmal.";
 }
@@ -1603,7 +1844,7 @@ async function openWorkoutTipSheet(workout, backToPlanId) {
     <h3 style="margin-top:${backToPlanId ? '10px' : '0'};">${typeLabel(workout.type)} · ${workout.scheduled_date}</h3>
     <p style="margin-top:6px;">${workout.target_distance_km} km @ ${paceLabel(workout.target_pace_sec_per_km)}/km${workout.description ? ' · ' + workout.description : ''}</p>
     <div class="card" style="margin-top:14px;padding:16px;" id="tip-content">
-      <span class="typing-dots"><span></span><span></span><span></span></span>
+      ${runnerLoaderHTML()}
     </div>
     <button class="btn btn-primary" style="margin-top:18px;" id="tip-log-btn">Ergebnis nachtragen</button>
   `;
@@ -1611,8 +1852,96 @@ async function openWorkoutTipSheet(workout, backToPlanId) {
   document.getElementById('tip-log-btn').addEventListener('click', () => openLogSheet(workout.id));
   const tip = await getWorkoutTip(workout);
   const tipEl = document.getElementById('tip-content');
-  if (tipEl) tipEl.innerHTML = `<p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Bobs Tipp</p><p style="color:var(--text);font-size:13px;line-height:1.6;">${tip}</p>`;
+  if (tipEl) {
+    tipEl.innerHTML = `<p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Bobs Tipp</p><p style="color:var(--text);font-size:13px;line-height:1.6;" id="tip-text"></p>`;
+    typeText(document.getElementById('tip-text'), tip, 10);
+  }
   document.getElementById('sheet-backdrop').classList.add('active');
+}
+
+// Erlaubt Rückfragen zu einem gerade ausgewerteten Lauf.
+async function askRunFollowup(question, analysis, matched) {
+  const logEl = document.getElementById('rev-followup-log');
+  if (!logEl) return;
+  const userB = document.createElement('div');
+  userB.className = 'bubble user';
+  userB.style.alignSelf = 'flex-end';
+  userB.textContent = question;
+  logEl.appendChild(userB);
+  const typingB = document.createElement('div');
+  typingB.className = 'bubble ai';
+  typingB.style.padding = '10px 16px';
+  typingB.innerHTML = runnerLoaderHTML();
+  logEl.appendChild(typingB);
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte auf Deutsch in 2-4 kurzen Sätzen, kein JSON, nur Fließtext.
+${BOB_PERSONA_RULE}
+Der Nutzer hat gerade einen Lauf ausgewertet bekommen und stellt dazu eine Rückfrage. Antworte konkret und hilfreich darauf.`;
+  const context = `${personalizationContext()}\nAuswertung: ${JSON.stringify(analysis)}. ${matched ? `Geplantes Training war: ${typeLabel(matched.type)}, ${matched.target_distance_km} km @ ${paceLabel(matched.target_pace_sec_per_km)}/km.` : ''}`;
+  const userMsg = `${context}\n\nFrage des Nutzers: "${question}"`;
+  const result = await callAI(systemPrompt, [{ role: "user", content: userMsg }], false);
+  typingB.className = 'bubble ai';
+  typingB.style.padding = '';
+  await typeText(typingB, result || "Entschuldigung, dazu kann ich gerade nichts sagen.");
+}
+
+// Erlaubt es, ein einzelnes Training im Plan manuell zu bearbeiten (Datum, Distanz, Pace, Typ).
+function openEditWorkoutRow(workout, planId) {
+  if (!workout) return;
+  const row = document.querySelector(`.diff-row[data-row-id="${workout.id}"]`);
+  if (!row) return;
+  const paceMin = (workout.target_pace_sec_per_km / 60).toFixed(2);
+  row.outerHTML = `
+    <div class="diff-row" data-row-id="${workout.id}" style="display:block;">
+      <div class="edit-fields">
+        ${dateFieldHTML(`edit-date-${workout.id}`, workout.scheduled_date, 'Datum')}
+        <div class="row">
+          <div class="field-group" style="flex:1;">
+            <label>Typ</label>
+            <select id="edit-type-${workout.id}" style="background:var(--bg-card);border:1.5px solid rgba(255,255,255,0.6);border-radius:14px;padding:14px 16px;font-family:var(--font);font-size:14px;color:var(--text);">
+              <option value="easy" ${workout.type==='easy'?'selected':''}>Locker</option>
+              <option value="intervall" ${workout.type==='intervall'?'selected':''}>Intervall</option>
+              <option value="long_run" ${workout.type==='long_run'?'selected':''}>Langer Lauf</option>
+              <option value="rest" ${workout.type==='rest'?'selected':''}>Pause</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field-group" style="flex:1;">
+            <label>Distanz (km)</label>
+            <input type="number" step="0.1" id="edit-distance-${workout.id}" value="${workout.target_distance_km}">
+          </div>
+          <div class="field-group" style="flex:1;">
+            <label>Pace (min/km)</label>
+            <input type="number" step="0.05" id="edit-pace-${workout.id}" value="${paceMin}">
+          </div>
+        </div>
+        <div class="row" style="margin-top:4px;">
+          <button class="btn btn-primary" style="flex:1;" id="edit-save-${workout.id}">Speichern</button>
+          <button class="btn btn-ghost" style="flex:1;" id="edit-cancel-${workout.id}">Abbrechen</button>
+        </div>
+      </div>
+    </div>`;
+  wireDateField(`edit-date-${workout.id}`);
+  document.getElementById(`edit-save-${workout.id}`).addEventListener('click', () => saveEditedWorkout(workout.id, planId));
+  document.getElementById(`edit-cancel-${workout.id}`).addEventListener('click', () => openPlanDetail(planId));
+}
+
+async function saveEditedWorkout(workoutId, planId) {
+  const date = document.getElementById(`edit-date-${workoutId}`).value;
+  const type = document.getElementById(`edit-type-${workoutId}`).value;
+  const distance = parseFloat(document.getElementById(`edit-distance-${workoutId}`).value);
+  const paceMin = parseFloat(document.getElementById(`edit-pace-${workoutId}`).value);
+  if (!date || isNaN(distance) || isNaN(paceMin)) { toast("Bitte gültige Werte eingeben."); return; }
+  const updates = {
+    scheduled_date: date, type, target_distance_km: distance,
+    target_pace_sec_per_km: Math.round(paceMin * 60), status: 'modified'
+  };
+  await Store.setDoc('workouts', workoutId, updates);
+  const w = state.workouts.find(w => w.id === workoutId);
+  if (w) Object.assign(w, updates);
+  toast("Training aktualisiert ✓");
+  renderDashboard();
+  openPlanDetail(planId);
 }
 
 function openConfirmSheet({ title, message, confirmLabel = 'Bestätigen', danger = false, onConfirm }) {
@@ -1649,7 +1978,7 @@ async function endActivePlan() {
   });
 }
 
-document.getElementById('btn-reset').addEventListener('click', endActivePlan);
+
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
   if (firebaseReady) await auth.signOut();
@@ -1661,6 +1990,7 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 // ---------- 11. INIT ----------
 (async function init() {
   mountIcons();
+  document.getElementById('loading-runner').innerHTML = runnerLoaderHTML();
   await initFirebase();
 
   if (firebaseReady) {
