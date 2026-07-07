@@ -10,8 +10,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Runny">
-<title>Runny</title>
+<meta name="apple-mobile-web-app-title" content="Runnify">
+<title>Runnify</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -247,7 +247,7 @@
   <!-- ===== SCREEN: LOADING ===== -->
   <div class="screen active" id="screen-loading" style="align-items:center;justify-content:center;">
     <div style="text-align:center;">
-      <div class="logo-mark" style="font-size:40px;">Runny</div>
+      <div class="logo-mark" style="font-size:40px;">Runnify</div>
       <div style="margin-top:18px;" id="loading-runner"></div>
     </div>
   </div>
@@ -255,7 +255,7 @@
   <!-- ===== SCREEN: AUTH (Login / Signup) ===== -->
   <div class="screen" id="screen-auth">
     <div style="margin-top:40px;text-align:center;">
-      <div class="logo-mark" style="font-size:34px;">Runny</div>
+      <div class="logo-mark" style="font-size:34px;">Runnify</div>
       <h1 style="margin-top:6px;" id="auth-title">Willkommen zurück</h1>
       <p style="margin-top:8px;" id="auth-subtitle">Melde dich an, um deinen Plan zu sehen.</p>
     </div>
@@ -369,7 +369,7 @@
   <!-- ===== SCREEN: DASHBOARD ===== -->
   <div class="screen" id="screen-dashboard">
     <div class="topbar">
-      <span class="logo-mark" style="font-size:36px;">Runny</span>
+      <span class="logo-mark" style="font-size:36px;">Runnify</span>
       <div class="topbar-actions">
         <span class="icon-round install-btn" id="install-trigger-btn" data-icon="download" style="display:none;"></span>
         <span class="icon-round" id="topbar-profile" data-icon="person"></span>
@@ -508,9 +508,9 @@
 
 <div id="install-overlay">
   <div id="install-sheet">
-    <div class="install-icon-wrap"><img src="apple-touch-icon.png" alt="Runny"></div>
-    <h2>Runny installieren</h2>
-    <p>Installiere Runny auf deinem Homescreen für den schnellsten Zugriff — wie eine echte App, ohne Browserleiste.</p>
+    <div class="install-icon-wrap"><img src="apple-touch-icon.png" alt="Runnify"></div>
+    <h2>Runnify installieren</h2>
+    <p>Installiere Runnify auf deinem Homescreen für den schnellsten Zugriff — wie eine echte App, ohne Browserleiste.</p>
     <div id="install-ios-steps" style="display:none;">
       Auf dem iPhone installieren:<br>
       1. Tippe unten auf <b>Teilen</b> ⬆️<br>
@@ -729,7 +729,7 @@ async function callAI(systemPrompt, messages, jsonMode = false) {
 // Bob's Foto-Analyse: erkennt Distanz/Zeit/Pace/Datum aus einem Lauf-Screenshot
 // (z.B. Strava, Garmin, Apple Watch, Adidas Running, Nike Run Club) und wertet
 // den Lauf inhaltlich aus (Splits, Tempoverlauf, Herzfrequenz, Einordnung).
-const VISION_SYSTEM_PROMPT = `Du bist Bob, ein erfahrener KI-Lauf-Coach von Runny. Du bekommst einen Screenshot eines Laufergebnisses
+const VISION_SYSTEM_PROMPT = `Du bist Bob, ein erfahrener KI-Lauf-Coach von Runnify. Du bekommst einen Screenshot eines Laufergebnisses
 (z.B. aus Strava, Garmin, Apple Watch, Adidas Running, Nike Run Club, Polar, Whoop). Analysiere das Bild GENAU:
 - Lies alle sichtbaren Werte ab: Distanz, Gesamtzeit, Ø-Pace, Datum/Uhrzeit, Höhenmeter, Herzfrequenz (Ø/Max), Kalorien, Kadenz, falls vorhanden.
 - Falls einzelne Kilometer-Splits sichtbar sind, lies sie aus und beurteile den Tempoverlauf (z.B. negativ gesplittet, gleichmäßig, im späteren Verlauf eingebrochen).
@@ -1284,7 +1284,7 @@ const BOB_PERSONA_RULE = `Sprich den Nutzer immer direkt und persönlich mit "du
 
 async function finishOnboardingChat() {
   const typing = addTypingBubble('onboard-chat-log');
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte ausschließlich auf Deutsch.\n${BOB_PERSONA_RULE}\n${PLAN_JSON_SCHEMA_PROMPT}`;
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runnify. Antworte ausschließlich auf Deutsch.\n${BOB_PERSONA_RULE}\n${PLAN_JSON_SCHEMA_PROMPT}`;
   const goalDescription = state.goal === 'eigenes_ziel' ? state.goalCustomText : state.goal;
   const userMsg = `${personalizationContext()}\nZiel: ${goalDescription}. Antworten: ${JSON.stringify(state.onboardAnswers)}. Frühere Läufe zur Pace-Kalibrierung: ${pastRunsSummary()}`;
   const result = await callAI(systemPrompt, [{ role: "user", content: userMsg }], true);
@@ -1296,7 +1296,7 @@ async function finishOnboardingChat() {
 async function refinePlanFromFeedback(text) {
   addBubble('onboard-chat-log', text, 'user');
   const typing = addTypingBubble('onboard-chat-log');
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte ausschließlich auf Deutsch.
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runnify. Antworte ausschließlich auf Deutsch.
 Du hast bereits einen Planentwurf erstellt. Der Nutzer möchte diesen Entwurf anpassen.
 ${PLAN_JSON_SCHEMA_PROMPT}`;
   const goalDescription = state.goal === 'eigenes_ziel' ? state.goalCustomText : state.goal;
@@ -1742,7 +1742,7 @@ async function submitAdjustPrompt(text) {
   const typing = addTypingBubble('adjust-chat-log');
 
   if (state.adjustMode !== 'plan') {
-    const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte auf Deutsch in 2-5 kurzen, natürlichen Sätzen (kein JSON, kein Fließtextblock).
+    const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runnify. Antworte auf Deutsch in 2-5 kurzen, natürlichen Sätzen (kein JSON, kein Fließtextblock).
 ${BOB_PERSONA_RULE}
 Das ist ein freier Chat, kein Plan-Anpassungs-Formular — beantworte die Frage/Nachricht des Nutzers direkt (z.B. Motivation, Trainingsfragen, Small Talk). Schlage nur dann konkrete Plan-Änderungen vor, wenn danach gefragt wird, und weise in dem Fall darauf hin, dass er das über "Plan anpassen" im Dashboard konkret umsetzen kann.`;
     const userMsg = `${personalizationContext()}\n\nNachricht des Nutzers: "${text}"`;
@@ -1753,7 +1753,7 @@ Das ist ein freier Chat, kein Plan-Anpassungs-Formular — beantworte die Frage/
   }
 
   const upcoming = state.workouts.filter(w => w.scheduled_date >= new Date().toISOString().slice(0,10)).slice(0,10);
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte auf Deutsch.
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runnify. Antworte auf Deutsch.
 ${BOB_PERSONA_RULE}
 Gib NUR ein JSON-Objekt zurück (kein Freitext davor/danach):
 { "reasoning": "kurze, persönliche Erklärung der Änderung in 1-2 Sätzen, direkt an den Nutzer gerichtet (du-Form)",
@@ -1949,7 +1949,7 @@ async function openPlanDetail(planId) {
 
 // Bobs Tipp zu einem einzelnen Trainingstag: WARUM dieses Training + konkrete Ausführungstipps.
 async function getWorkoutTip(workout) {
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte auf Deutsch in 2-4 kurzen Sätzen, kein JSON, nur Fließtext.
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runnify. Antworte auf Deutsch in 2-4 kurzen Sätzen, kein JSON, nur Fließtext.
 ${BOB_PERSONA_RULE}
 Erkläre kurz, WARUM dieses Training in dieser Form im Trainingsplan sinnvoll ist (welcher Trainingsreiz, welche Funktion im Wochenaufbau),
 und gib 1-2 konkrete, umsetzbare Tipps zur Ausführung (z.B. Pacing-Strategie, Atmung, mentale Herangehensweise, worauf zu achten ist).`;
@@ -1995,7 +1995,7 @@ async function askRunFollowup(question, analysis, matched) {
   typingB.style.padding = '10px 16px';
   typingB.innerHTML = runnerLoaderHTML();
   logEl.appendChild(typingB);
-  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runny. Antworte auf Deutsch in 2-4 kurzen Sätzen, kein JSON, nur Fließtext.
+  const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runnify. Antworte auf Deutsch in 2-4 kurzen Sätzen, kein JSON, nur Fließtext.
 ${BOB_PERSONA_RULE}
 Der Nutzer hat gerade einen Lauf ausgewertet bekommen und stellt dazu eine Rückfrage. Antworte konkret und hilfreich darauf.`;
   const context = `${personalizationContext()}\nAuswertung: ${JSON.stringify(analysis)}. ${matched ? `Geplantes Training war: ${typeLabel(matched.type)}, ${matched.target_distance_km} km @ ${paceLabel(matched.target_pace_sec_per_km)}/km.` : ''}`;
