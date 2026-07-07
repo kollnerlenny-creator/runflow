@@ -53,10 +53,12 @@
   }
   #app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative;display:flex;flex-direction:column;background:transparent;overscroll-behavior-y:contain;}
   .tabular{font-variant-numeric:tabular-nums;}
-  .screen{flex:1;display:none;flex-direction:column;padding:20px 20px 100px;overflow-y:auto;overscroll-behavior-y:contain;opacity:1;transform:translateY(0);transition:opacity .28s ease, transform .28s ease;}
+  .screen{flex:1;display:none;flex-direction:column;padding:20px 20px 100px;overflow-y:auto;overscroll-behavior-y:contain;opacity:1;transform:translateY(0) translateX(0);transition:opacity .32s cubic-bezier(0.22,1,0.36,1), transform .32s cubic-bezier(0.22,1,0.36,1);}
   #screen-adjust.active{padding-bottom:16px;}
   .screen.active{display:flex;}
   .screen.screen-enter{opacity:0;transform:translateY(14px);}
+  .screen.screen-enter-right{opacity:0;transform:translateX(72px) scale(0.98);}
+  .screen.screen-enter-left{opacity:0;transform:translateX(-72px) scale(0.98);}
   .logo-mark{font-family:var(--font-script);color:var(--accent-text);line-height:1;font-weight:600;}
   .navitem{transition:color .2s ease;}
   .navitem.fab .ico{transition:transform .15s ease;}
@@ -490,6 +492,10 @@
     <div class="card" id="prog-run-list" style="padding:6px 20px;">
       <p style="padding:14px 0;">Noch keine Läufe geloggt.</p>
     </div>
+    <div class="section-title"><h2>Meine Pläne</h2></div>
+    <div class="card" id="prog-plans-list" style="padding:6px 20px;">
+      <p style="padding:14px 0;">Noch keine Pläne vorhanden.</p>
+    </div>
   </div>
 
   <!-- Bottom Nav -->
@@ -692,6 +698,15 @@ const Store = {
     const id = crypto.randomUUID();
     await this.setDoc(col, id, data);
     return id;
+  },
+  async deleteDoc(col, id) {
+    if (firebaseReady) {
+      await db.collection(col).doc(id).delete();
+    } else {
+      const all = JSON.parse(localStorage.getItem(col) || "{}");
+      delete all[id];
+      localStorage.setItem(col, JSON.stringify(all));
+    }
   }
 };
 
@@ -1050,14 +1065,15 @@ const ONBOARD_QUESTIONS = [
 ];
 
 // ---------- 5. NAVIGATION ----------
-function showScreen(id) {
+function showScreen(id, direction) {
   const next = document.getElementById('screen-' + id);
   if (!next || next.classList.contains('active')) return;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  next.classList.add('active', 'screen-enter');
+  const enterClass = direction === 'right' ? 'screen-enter-right' : direction === 'left' ? 'screen-enter-left' : 'screen-enter';
+  next.classList.add('active', enterClass);
   mountIcons(next);
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => next.classList.remove('screen-enter'));
+    requestAnimationFrame(() => next.classList.remove('screen-enter', 'screen-enter-right', 'screen-enter-left'));
   });
 }
 function setNav(tab) {
@@ -1082,7 +1098,13 @@ function renderTab(tab) {
 }
 function goToTab(tab, opts) {
   opts = opts || {};
-  showScreen(tab); setNav(tab); renderTab(tab);
+  const activeScreen = document.querySelector('.screen.active');
+  const currentTab = activeScreen ? activeScreen.id.replace('screen-', '') : null;
+  let direction = opts.direction;
+  if (!direction && TAB_ORDER.includes(currentTab) && TAB_ORDER.includes(tab) && currentTab !== tab) {
+    direction = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(currentTab) ? 'right' : 'left';
+  }
+  showScreen(tab, direction); setNav(tab); renderTab(tab);
   if (!opts.skipHistory) {
     safeHistory('push', { tab });
   }
@@ -1093,7 +1115,13 @@ window.addEventListener('popstate', (e) => {
   if (sheetOpen) { closeSheet(); return; }
   const tab = (e.state && e.state.tab) || 'dashboard';
   if (TAB_ORDER.includes(tab)) {
-    showScreen(tab); setNav(tab); renderTab(tab);
+    const activeScreen = document.querySelector('.screen.active');
+    const currentTab = activeScreen ? activeScreen.id.replace('screen-', '') : null;
+    let direction;
+    if (TAB_ORDER.includes(currentTab) && currentTab !== tab) {
+      direction = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(currentTab) ? 'right' : 'left';
+    }
+    showScreen(tab, direction); setNav(tab); renderTab(tab);
   }
 });
 function safeHistory(mode, state) {
@@ -1983,6 +2011,94 @@ function renderProgress() {
       return `<div class="diff-row"><span>${dateLabel} · ${w ? typeLabel(w.type) : 'Lauf'}</span><span>${l.actual_distance_km} km · ${paceLabel(l.actual_pace_sec_per_km)}/km</span></div>`;
     }).join('');
   }
+
+  const plansList = document.getElementById('prog-plans-list');
+  if (!state.allPlans || state.allPlans.length === 0) {
+    plansList.innerHTML = `<p style="padding:14px 0;">Noch keine Pläne vorhanden.</p>`;
+  } else {
+    plansList.innerHTML = state.allPlans.map(p => {
+      const statusColor = p.status === 'active' ? 'var(--accent-text)' : 'var(--text-dim)';
+      const statusLabel = p.status === 'active' ? 'Aktiv' : 'Beendet';
+      const date = p.created_at ? new Date(p.created_at).toLocaleDateString('de-DE') : '';
+      return `
+      <div class="plan-row">
+        <div class="plan-history-item" data-plan-id="${p.id}">
+          <div>
+            <div style="font-weight:700;font-size:14px;">${p.summary || p.goal}</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:2px;"><span class="status-dot" style="background:${statusColor};"></span>${statusLabel} · ${date}</div>
+          </div>
+          <span style="color:var(--text-dim);">${svgIcon('chevron-right', 16)}</span>
+        </div>
+        <span class="plan-delete-btn" data-plan-id="${p.id}" title="Plan löschen">${svgIcon('trash', 17)}</span>
+      </div>`;
+    }).join('');
+    plansList.querySelectorAll('.plan-history-item').forEach(front => {
+      front.addEventListener('click', () => openPlanProgressDetail(front.dataset.planId));
+    });
+    plansList.querySelectorAll('.plan-delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); confirmDeletePlan(btn.dataset.planId); });
+    });
+  }
+}
+
+// Zeigt für einen bestimmten Plan: absolvierte Trainings + aktuelle Pace-Werte (nur für diesen Plan berechnet).
+async function openPlanProgressDetail(planId) {
+  const plan = state.allPlans.find(p => p.id === planId);
+  if (!plan) return;
+  const isActivePlan = plan.id === (state.plan && state.plan.id);
+  const workouts = isActivePlan ? state.workouts : await Store.queryByField('workouts', 'plan_id', planId);
+  const planWorkouts = workouts.filter(w => w.type !== 'rest');
+  const completed = planWorkouts.filter(w => w.status === 'completed');
+  const pct = planWorkouts.length > 0 ? Math.round((completed.length / planWorkouts.length) * 100) : 0;
+  const completedIds = new Set(completed.map(w => w.id));
+  const planLogs = state.runLogs
+    .filter(l => completedIds.has(l.workout_id))
+    .sort((a, b) => (a.logged_at || 0) - (b.logged_at || 0));
+  let avgPace = '–', bestPace = '–', currentPace = '–';
+  if (planLogs.length > 0) {
+    avgPace = paceLabel(Math.round(planLogs.reduce((s, l) => s + l.actual_pace_sec_per_km, 0) / planLogs.length));
+    bestPace = paceLabel(Math.min(...planLogs.map(l => l.actual_pace_sec_per_km)));
+    currentPace = paceLabel(planLogs[planLogs.length - 1].actual_pace_sec_per_km);
+  }
+  const sortedWorkouts = [...workouts].sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+  const content = document.getElementById('sheet-content');
+  content.innerHTML = `
+    <h3>${plan.summary || plan.goal}</h3>
+    <p style="margin-top:6px;">${plan.weeks_total} Wochen · ${plan.status === 'active' ? 'Aktiver Plan' : 'Beendet'}</p>
+    <div class="card" style="margin-top:14px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Plan-Fortschritt</p>
+        <span style="font-size:13px;font-weight:800;color:var(--accent-text);">${pct}%</span>
+      </div>
+      <div style="background:var(--border);border-radius:100px;height:10px;margin-top:10px;overflow:hidden;">
+        <div style="background:var(--accent);height:100%;width:${pct}%;border-radius:100px;"></div>
+      </div>
+      <p style="margin-top:8px;font-size:12px;">${completed.length} von ${planWorkouts.length} Trainings absolviert</p>
+    </div>
+    <div class="row" style="margin-top:12px;gap:12px;">
+      <div class="card" style="flex:1;padding:14px;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Aktuelle Pace</p>
+        <h3 style="margin-top:6px;font-size:20px;">${currentPace}</h3>
+      </div>
+      <div class="card" style="flex:1;padding:14px;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Ø Pace</p>
+        <h3 style="margin-top:6px;font-size:20px;">${avgPace}</h3>
+      </div>
+      <div class="card" style="flex:1;padding:14px;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Beste Pace</p>
+        <h3 style="margin-top:6px;font-size:20px;">${bestPace}</h3>
+      </div>
+    </div>
+    <p class="fieldnote" style="margin-top:14px;">Alle Trainings dieses Plans:</p>
+    <div class="card" style="margin-top:8px;max-height:38vh;overflow-y:auto;padding:6px 20px;">
+      ${sortedWorkouts.map(w => `
+        <div class="diff-row">
+          <span>${w.scheduled_date} · ${typeLabel(w.type)}${w.status === 'completed' ? ' ✓' : ''}</span>
+          <span>${w.target_distance_km} km</span>
+        </div>`).join('') || '<p style="padding:10px 0;">Keine Workouts gefunden.</p>'}
+    </div>
+  `;
+  document.getElementById('sheet-backdrop').classList.add('active');
 }
 
 // ---------- 10. PROFIL ----------
@@ -2030,16 +2146,16 @@ async function confirmDeletePlan(planId) {
     confirmLabel: 'Endgültig löschen',
     danger: true,
     onConfirm: async () => {
-      const workouts = await Store.queryByField('workouts', 'plan_id', planId);
-      for (const w of workouts) {
-        if (firebaseReady) await db.collection('workouts').doc(w.id).delete();
-      }
-      if (firebaseReady) {
-        await db.collection('training_plans').doc(planId).delete();
-      } else {
-        const all = JSON.parse(localStorage.getItem('training_plans') || "{}");
-        delete all[planId];
-        localStorage.setItem('training_plans', JSON.stringify(all));
+      try {
+        const workouts = await Store.queryByField('workouts', 'plan_id', planId);
+        for (const w of workouts) {
+          await Store.deleteDoc('workouts', w.id);
+        }
+        await Store.deleteDoc('training_plans', planId);
+      } catch (err) {
+        console.error('Plan löschen fehlgeschlagen:', err);
+        toast("Löschen fehlgeschlagen. Bitte erneut versuchen.");
+        return;
       }
       state.allPlans = state.allPlans.filter(p => p.id !== planId);
       if (state.plan && state.plan.id === planId) {
@@ -2048,6 +2164,7 @@ async function confirmDeletePlan(planId) {
         showScreen('goal');
       } else {
         renderProfile();
+        renderProgress();
       }
       toast("Plan gelöscht.");
     }
