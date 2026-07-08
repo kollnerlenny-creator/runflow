@@ -145,7 +145,16 @@
   .cal-cell:active{transform:scale(0.93);}
   .card, .hero-card, .goal-card{animation:card-in .32s ease both;}
   @keyframes card-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-  .composer{position:sticky;bottom:0;display:flex;gap:8px;padding-top:10px;background:linear-gradient(0deg,var(--bg) 70%,transparent);}
+  .composer{position:static;flex-shrink:0;display:flex;gap:8px;padding-top:10px;background:linear-gradient(0deg,var(--bg) 70%,transparent);}
+  /* Chat-Screens (Onboarding, Plan anpassen): der Screen selbst scrollt NICHT mehr —
+     nur der .chat-log-Bereich tut das. Die Eingabeleiste (.composer) ist dadurch ein
+     ganz normales, fest platziertes Flex-Element am unteren Rand und kann weder
+     Inhalte verdecken noch (durch sticky-Neuberechnung beim Ein-/Ausblenden der
+     Tastatur) nach oben verrutschen. */
+  #screen-onboard-chat.active,
+  #screen-adjust.active{overflow:hidden;}
+  #screen-onboard-chat .chat-log,
+  #screen-adjust .chat-log{overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;}
   .composer input{flex:1;background:var(--bg-card);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid rgba(255,255,255,0.6);border-radius:100px;padding:13px 18px;color:var(--text);font-size:14px;font-family:var(--font);}
   .composer input:focus{outline:none;border-color:var(--accent-text);}
   .composer button{width:46px;height:46px;border-radius:50%;background:var(--accent);border:none;color:#0B0D10;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
@@ -880,6 +889,18 @@ function svgIcon(name, size) {
   const s = size || 20;
   return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 }
+// Liefert das heutige (oder ein beliebiges) Datum als lokales YYYY-MM-DD.
+// WICHTIG: toISOString() rechnet immer in UTC um — für Nutzer:innen östlich
+// von UTC (z.B. Deutschland) kann das App-Datum dadurch nachts/früh morgens
+// noch auf "gestern" stehen. Diese Funktion nutzt stattdessen lokale Werte.
+function localDateStr(d) {
+  d = d || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function formatDateDE(dateStr) {
   if (!dateStr) return '–';
   const [y,m,d] = dateStr.split('-');
@@ -925,7 +946,7 @@ function renderDatePicker(selectedValue, onPick) {
   const firstDay = new Date(year, month, 1);
   const startOffset = (firstDay.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month+1, 0).getDate();
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localDateStr();
   let cells = '';
   for (let i=0;i<startOffset;i++) cells += `<span class="datepicker-day empty"></span>`;
   for (let day=1; day<=daysInMonth; day++) {
@@ -1450,7 +1471,7 @@ function personalizationContext() {
   parts.push(name ? `Name des Nutzers: ${name}.` : `Name des Nutzers: unbekannt.`);
   if (plan) parts.push(`Aktueller Plan: ${plan.summary || plan.goal} (Woche läuft, ${plan.weeks_total || '?'} Wochen gesamt).`);
 
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localDateStr();
   parts.push(`Heutiges Datum: ${todayStr}.`);
   const todayWorkout = state.workouts.find(w => w.scheduled_date === todayStr);
   if (todayWorkout) {
@@ -1532,7 +1553,7 @@ document.getElementById('btn-create-plan').addEventListener('click', async () =>
     const wid = crypto.randomUUID();
     const workout = {
       plan_id: planId,
-      scheduled_date: dateObj.toISOString().slice(0,10),
+      scheduled_date: localDateStr(dateObj),
       type: w.type,
       target_distance_km: w.distance_km,
       target_pace_sec_per_km: w.pace_sec_per_km,
@@ -1553,7 +1574,7 @@ document.getElementById('btn-create-plan').addEventListener('click', async () =>
 
 // ---------- 7. DASHBOARD ----------
 function renderDashboard() {
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localDateStr();
   const todayWorkout = state.workouts.find(w => w.scheduled_date === todayStr && w.status !== 'completed');
   const el = document.getElementById('today-content');
   if (todayWorkout) {
@@ -1578,7 +1599,7 @@ function renderDashboard() {
   const labels = ['M','D','M','D','F','S','S'];
   for (let i=0;i<7;i++) {
     const d = new Date(monday); d.setDate(monday.getDate()+i);
-    const ds = d.toISOString().slice(0,10);
+    const ds = localDateStr(d);
     const w = state.workouts.find(w => w.scheduled_date === ds);
     const dot = document.createElement('div');
     let cls = 'week-dot';
@@ -1670,6 +1691,65 @@ async function submitRunLog(workoutId) {
   closeSheet();
   toast("Lauf gespeichert ✓");
   renderDashboard();
+  await maybeAutoAdaptPlan();
+}
+
+// ---------- 9b2. AUTOMATISCHE PLAN-ANPASSUNG BEI FORTSCHRITT ----------
+// Prüft nach jedem geloggten Lauf, ob die letzten Trainings spürbar
+// schneller als geplant absolviert wurden. Ist das der Fall, werden die
+// Paces der noch bevorstehenden (nicht absolvierten) Trainings automatisch
+// leicht nach oben angepasst, statt dass der Plan starr beim ursprünglichen
+// (jetzt zu langsamen) Tempo bleibt.
+async function maybeAutoAdaptPlan() {
+  if (!state.plan || !state.workouts || !state.workouts.length) return;
+
+  const completed = state.workouts
+    .filter(w => w.status === 'completed' && w.target_pace_sec_per_km && w.type !== 'rest')
+    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+  const recent = completed.slice(-3);
+  if (recent.length < 3) return; // erst ab 3 absolvierten Trainings bewerten
+
+  const ratios = [];
+  for (const w of recent) {
+    const logsForW = state.runLogs.filter(l => l.workout_id === w.id);
+    if (!logsForW.length) continue;
+    const lastLog = logsForW[logsForW.length - 1];
+    if (!lastLog.actual_pace_sec_per_km) continue;
+    ratios.push(lastLog.actual_pace_sec_per_km / w.target_pace_sec_per_km);
+  }
+  if (ratios.length < 3) return;
+
+  const avgRatio = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+  // avgRatio < 1  →  tatsächliche Pace (sec/km) war im Schnitt niedriger,
+  // also schneller gelaufen als geplant.
+  const SPEEDUP_THRESHOLD = 0.96; // mind. ~4% schneller im Schnitt
+  if (avgRatio >= SPEEDUP_THRESHOLD) return;
+
+  // Nicht zu aggressiv anpassen: nur die Hälfte des gemessenen Vorsprungs
+  // übernehmen, gedeckelt auf max. 6% pro Anpassung.
+  const adjustFactor = Math.max(0.94, 1 - (1 - avgRatio) * 0.5);
+
+  // Höchstens einmal pro Woche automatisch anpassen.
+  const now = Date.now();
+  if (state.plan.last_auto_adapt_at && now - state.plan.last_auto_adapt_at < 7 * 24 * 60 * 60 * 1000) return;
+
+  const todayStr = localDateStr();
+  const future = state.workouts.filter(w =>
+    w.status !== 'completed' && w.type !== 'rest' &&
+    w.scheduled_date >= todayStr && w.target_pace_sec_per_km
+  );
+  if (!future.length) return;
+
+  for (const w of future) {
+    const newPace = Math.round(w.target_pace_sec_per_km * adjustFactor);
+    w.target_pace_sec_per_km = newPace;
+    await Store.setDoc('workouts', w.id, { target_pace_sec_per_km: newPace });
+  }
+  state.plan.last_auto_adapt_at = now;
+  await Store.setDoc('training_plans', state.plan.id, { last_auto_adapt_at: now });
+
+  renderDashboard();
+  toast("Du läufst schneller als geplant — dein Plan wurde automatisch angepasst 🚀");
 }
 
 // ---------- 9c. FOTO-UPLOAD & BOB-AUSWERTUNG ----------
@@ -1736,7 +1816,7 @@ function openPhotoReviewSheet(result, preselectedWorkoutId) {
     ${metaChips.length ? `<div class="chips" style="margin-top:10px;">${metaChips.map(c => `<span class="chip" style="cursor:default;">${c}</span>`).join('')}</div>` : ''}
     ${result.splits && result.splits.length ? `<div class="card" style="margin-top:14px;padding:14px 20px;"><p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Splits</p><p style="color:var(--text);font-size:13px;">${result.splits.join(' · ')}</p></div>` : ''}
     <div style="margin-top:18px;display:flex;flex-direction:column;gap:12px;">
-      ${dateFieldHTML('rev-date', result.date || new Date().toISOString().slice(0,10), 'Datum')}
+      ${dateFieldHTML('rev-date', result.date || localDateStr(), 'Datum')}
       <div class="field-group">
         <label>Distanz (km)</label>
         <input type="number" step="0.1" id="rev-distance" value="${result.distance_km ?? ''}">
@@ -1794,6 +1874,7 @@ async function confirmPhotoLog(workoutId, analysis) {
   closeSheet();
   toast("Lauf gespeichert ✓");
   renderDashboard();
+  if (workoutId) await maybeAutoAdaptPlan();
 }
 
 function renderPastRuns() {
@@ -1825,7 +1906,7 @@ document.getElementById('qa-adjust').addEventListener('click', () => openAdjustS
 document.getElementById('qa-photo').addEventListener('click', () => {
   state.photoUploadContext = 'log';
   state.photoUploadWorkoutId = null;
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateStr();
   const todayWorkout = state.workouts.find(w => w.scheduled_date === todayStr);
   state.photoUploadWorkoutId = todayWorkout ? todayWorkout.id : null;
   document.getElementById('photo-input').value = '';
@@ -1851,9 +1932,9 @@ function renderCalendar() {
   for (let i=0;i<startOffset;i++) {
     const empty = document.createElement('div'); empty.className='cal-cell empty'; grid.appendChild(empty);
   }
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localDateStr();
   for (let day=1; day<=daysInMonth; day++) {
-    const dateStr = new Date(year, month, day).toISOString().slice(0,10);
+    const dateStr = localDateStr(new Date(year, month, day));
     const w = state.workouts.find(w => w.scheduled_date === dateStr);
     const cell = document.createElement('div');
     let cls = 'cal-cell';
@@ -1947,7 +2028,7 @@ Das ist ein freier Chat, kein Plan-Anpassungs-Formular — beantworte die Frage/
     return;
   }
 
-  const upcoming = state.workouts.filter(w => w.scheduled_date >= new Date().toISOString().slice(0,10)).slice(0,10);
+  const upcoming = state.workouts.filter(w => w.scheduled_date >= localDateStr()).slice(0,10);
   const systemPrompt = `Du bist Bob, der KI-Lauf-Coach von Runnify. Antworte auf Deutsch.
 ${BOB_PERSONA_RULE}
 Gib NUR ein JSON-Objekt zurück (kein Freitext davor/danach):
