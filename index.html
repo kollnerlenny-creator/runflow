@@ -351,7 +351,7 @@
   </div>
 
   <!-- Verstecktes Datei-Input für alle Foto-Uploads (Log + Onboarding) -->
-  <input type="file" id="photo-input" accept="image/*" style="display:none;">
+  <input type="file" id="photo-input" accept="image/*" multiple style="display:none;">
 
   <!-- ===== SCREEN: PLAN PREVIEW ===== -->
   <div class="screen" id="screen-preview">
@@ -792,16 +792,20 @@ Wenn auf dem Bild kein auswertbares Laufergebnis zu erkennen ist, setze "recogni
 Falls Distanz und Dauer erkennbar sind, aber keine Pace angegeben ist, berechne pace_sec_per_km selbst.`;
 
 
-async function callAIVision(base64Image, mediaType) {
+async function callAIVision(images) {
+  // images: Array<{ base64, mediaType }> — unterstützt mehrere Screenshots eines Laufs
   if (USE_WORKER) {
     const res = await fetch(WORKER_URL + "/api/vision", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ systemPrompt: VISION_SYSTEM_PROMPT, image: base64Image, mediaType })
+      body: JSON.stringify({ systemPrompt: VISION_SYSTEM_PROMPT, images })
     });
     const data = await res.json();
     return data.result && data.result.recognized !== false ? data.result : null;
   }
+  const imageBlocks = images.map(img => ({
+    type: "image", source: { type: "base64", media_type: img.mediaType, data: img.base64 }
+  }));
   const body = {
     model: "claude-sonnet-4-6",
     max_tokens: 800,
@@ -809,8 +813,10 @@ async function callAIVision(base64Image, mediaType) {
     messages: [{
       role: "user",
       content: [
-        { type: "image", source: { type: "base64", media_type: mediaType, data: base64Image } },
-        { type: "text", text: "Analysiere diesen Lauf-Screenshot." }
+        ...imageBlocks,
+        { type: "text", text: images.length > 1
+          ? "Analysiere diese Lauf-Screenshots. Sie zeigen denselben Lauf aus mehreren Ansichten — fasse sie zu einem einzigen Ergebnis zusammen."
+          : "Analysiere diesen Lauf-Screenshot." }
       ]
     }]
   };
@@ -1675,17 +1681,18 @@ function triggerPhotoUpload(context, workoutId) {
 }
 
 document.getElementById('photo-input').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  await processRunPhoto(file);
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  await processRunPhotos(files);
 });
 
-async function processRunPhoto(file) {
+async function processRunPhotos(files) {
   const context = state.photoUploadContext;
+  const multi = files.length > 1;
   if (context === 'onboarding') {
     const statusEl = document.getElementById('past-runs-status');
-    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;">${runnerLoaderHTML()}<span>Bob analysiert das Foto…</span></div>`;
-    const result = await analyzePhotoFile(file);
+    statusEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;">${runnerLoaderHTML()}<span>Bob analysiert ${multi ? 'die Fotos' : 'das Foto'}…</span></div>`;
+    const result = await analyzePhotoFiles(files);
     statusEl.innerHTML = '';
     if (!result) { toast("Bob konnte darauf leider kein Laufergebnis erkennen."); return; }
     state.pastRuns = state.pastRuns || [];
@@ -1693,17 +1700,20 @@ async function processRunPhoto(file) {
     renderPastRuns();
   } else {
     closeSheet();
-    toast("Bob schaut sich dein Foto an…");
-    const result = await analyzePhotoFile(file);
+    toast(`Bob schaut sich ${multi ? 'deine Fotos' : 'dein Foto'} an…`);
+    const result = await analyzePhotoFiles(files);
     if (!result) { toast("Bob konnte darauf leider kein Laufergebnis erkennen. Bitte manuell eintragen."); return; }
     openPhotoReviewSheet(result, state.photoUploadWorkoutId);
   }
 }
 
-async function analyzePhotoFile(file) {
+async function analyzePhotoFiles(files) {
   try {
-    const base64 = await fileToBase64(file);
-    return await callAIVision(base64, file.type || "image/jpeg");
+    const images = await Promise.all(files.map(async (file) => ({
+      base64: await fileToBase64(file),
+      mediaType: file.type || "image/jpeg"
+    })));
+    return await callAIVision(images);
   } catch (e) {
     console.error("Foto-Analyse fehlgeschlagen", e);
     return null;
