@@ -477,6 +477,12 @@
   <!-- ===== SCREEN: FORTSCHRITT ===== -->
   <div class="screen" id="screen-progress">
     <div class="topbar"><h2>Fortschritt</h2></div>
+    <div class="hero-card" id="weekly-review-card" style="margin-top:16px;padding:20px;cursor:pointer;">
+      <span class="type-badge"><span class="dot" data-icon="sparkle" style="width:12px;height:12px;display:flex;"></span>Bob's Wochenrückblick</span>
+      <div id="weekly-review-content">
+        <p style="color:rgba(20,23,20,0.75);">Tippen für deine Zusammenfassung der letzten 7 Tage.</p>
+      </div>
+    </div>
     <div class="card" id="prog-plan-card" style="margin-top:16px;padding:18px;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;">
         <p style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Plan-Fortschritt</p>
@@ -486,6 +492,7 @@
         <div id="prog-plan-bar" style="background:var(--accent);height:100%;width:0%;border-radius:100px;transition:width .4s ease;"></div>
       </div>
       <p id="prog-plan-label" style="margin-top:8px;font-size:12px;">0 von 0 Trainings absolviert</p>
+      <button class="btn btn-secondary" id="btn-share-plan" style="width:100%;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;padding:11px;"><span class="icon-btn" data-icon="share" style="width:15px;height:15px;display:inline-flex;"></span>Plan teilen</button>
     </div>
     <div class="row" style="margin-top:12px;gap:12px;">
       <div class="card" style="flex:1;padding:16px;">
@@ -881,7 +888,8 @@ const ICON_PATHS = {
   trash: '<path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12"/>',
   download: '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
   eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
-  'eye-off': '<path d="M3 3l18 18"/><path d="M10.6 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a15.6 15.6 0 0 1-3.2 4.1M6.6 6.6C4 8.3 2 12 2 12s3.6 7 10 7a10.4 10.4 0 0 0 3.4-.6"/><path d="M9.5 9.7a3 3 0 0 0 4.2 4.2"/>'
+  'eye-off': '<path d="M3 3l18 18"/><path d="M10.6 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a15.6 15.6 0 0 1-3.2 4.1M6.6 6.6C4 8.3 2 12 2 12s3.6 7 10 7a10.4 10.4 0 0 0 3.4-.6"/><path d="M9.5 9.7a3 3 0 0 0 4.2 4.2"/>',
+  share: '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6"/>'
 };
 function svgIcon(name, size) {
   const p = ICON_PATHS[name];
@@ -2073,8 +2081,351 @@ function renderDiff(updated) {
   });
 }
 
+// ---------- 9e. PLAN TEILEN (als Bild im App-Look) ----------
+// Rendert eine Story-artige PNG-Grafik (1080x1350) im Liquid-Glass-Stil der
+// App: Hintergrund-Blobs in den App-Farben, ein Glass-Card mit Blur-Optik,
+// Runnify-Logo/Schriftzug, Fortschritts-Kennzahlen und den nächsten Trainings.
+// Wird über die native Share-Sheet (mit Bild-Datei) geteilt, Fallback: Download.
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  const words = text.split(' ');
+  let line = '';
+  let lines = [];
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  if (maxLines && lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines[maxLines - 1] = lines[maxLines - 1].replace(/\s*\S*$/, '') + '…';
+  }
+  lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineHeight));
+  return lines.length;
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+const RUNNIFY_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2000" zoomAndPan="magnify" viewBox="0 0 1500 1499.999933" height="2000" preserveAspectRatio="xMidYMid meet" version="1.0"><defs><g/><clipPath id="f994042864"><rect x="0" width="934" y="0" height="1500"/></clipPath><clipPath id="a5156532c7"><path d="M 513.234375 334.5625 L 1040 334.5625 L 1040 772.195312 L 513.234375 772.195312 Z M 513.234375 334.5625 " clip-rule="nonzero"/></clipPath><clipPath id="a01d29dd9a"><path d="M 776.570312 334.5625 C 631.132812 334.5625 513.234375 432.527344 513.234375 553.378906 C 513.234375 674.226562 631.132812 772.195312 776.570312 772.195312 C 922.007812 772.195312 1039.90625 674.226562 1039.90625 553.378906 C 1039.90625 432.527344 922.007812 334.5625 776.570312 334.5625 Z M 776.570312 334.5625 " clip-rule="nonzero"/></clipPath><clipPath id="b512585037"><path d="M 0.234375 0.5625 L 526.921875 0.5625 L 526.921875 438.195312 L 0.234375 438.195312 Z M 0.234375 0.5625 " clip-rule="nonzero"/></clipPath><clipPath id="11be8d129f"><path d="M 263.570312 0.5625 C 118.132812 0.5625 0.234375 98.527344 0.234375 219.378906 C 0.234375 340.226562 118.132812 438.195312 263.570312 438.195312 C 409.007812 438.195312 526.90625 340.226562 526.90625 219.378906 C 526.90625 98.527344 409.007812 0.5625 263.570312 0.5625 Z M 263.570312 0.5625 " clip-rule="nonzero"/></clipPath><clipPath id="e14db08c2f"><rect x="0" width="527" y="0" height="439"/></clipPath><clipPath id="ed428d7268"><path d="M 798 350 L 898 350 L 898 451 L 798 451 Z M 798 350 " clip-rule="nonzero"/></clipPath><clipPath id="7dfe6fded2"><path d="M 626.199219 280.746094 L 995.691406 382.5 L 873.625 825.75 L 504.128906 723.992188 Z M 626.199219 280.746094 " clip-rule="nonzero"/></clipPath><clipPath id="c8105ba7ff"><path d="M 626.199219 280.746094 L 995.691406 382.5 L 873.625 825.75 L 504.128906 723.992188 Z M 626.199219 280.746094 " clip-rule="nonzero"/></clipPath><clipPath id="a7f2102aa9"><path d="M 515 554 L 705 554 L 705 733 L 515 733 Z M 515 554 " clip-rule="nonzero"/></clipPath><clipPath id="bf8d8202c9"><path d="M 626.199219 280.746094 L 995.691406 382.5 L 873.625 825.75 L 504.128906 723.992188 Z M 626.199219 280.746094 " clip-rule="nonzero"/></clipPath><clipPath id="c1fd6fec38"><path d="M 626.199219 280.746094 L 995.691406 382.5 L 873.625 825.75 L 504.128906 723.992188 Z M 626.199219 280.746094 " clip-rule="nonzero"/></clipPath><clipPath id="2ae9791565"><path d="M 612 377 L 947 377 L 947 709 L 612 709 Z M 612 377 " clip-rule="nonzero"/></clipPath><clipPath id="0d8fed2722"><path d="M 626.199219 280.746094 L 995.691406 382.5 L 873.625 825.75 L 504.128906 723.992188 Z M 626.199219 280.746094 " clip-rule="nonzero"/></clipPath><clipPath id="346c37d003"><path d="M 626.199219 280.746094 L 995.691406 382.5 L 873.625 825.75 L 504.128906 723.992188 Z M 626.199219 280.746094 " clip-rule="nonzero"/></clipPath></defs><rect x="-150" width="1800" fill="#ffffff" y="-149.999993" height="1799.99992" fill-opacity="1"/><rect x="-150" width="1800" fill="#9fc829" y="-149.999993" height="1799.99992" fill-opacity="1"/><g transform="matrix(1, 0, 0, 1, 284, 0.000000000000112861)"><g clip-path="url(#f994042864)"><g fill="#1c2a14" fill-opacity="1"><g transform="translate(0.642014, 1271.662794)"><g><path d="M 172.1875 5.6875 C 151.320312 5.6875 131.875 5.210938 113.84375 4.265625 C 95.820312 3.316406 83.015625 1.894531 75.421875 0 C 51.703125 -4.738281 39.84375 -17.070312 39.84375 -37 C 39.84375 -79.6875 40.550781 -133.050781 41.96875 -197.09375 C 43.394531 -261.132812 45.296875 -330.15625 47.671875 -404.15625 C 50.046875 -478.15625 52.414062 -551.441406 54.78125 -624.015625 C 57.15625 -696.585938 59.523438 -762.992188 61.890625 -823.234375 C 64.265625 -883.484375 65.929688 -931.160156 66.890625 -966.265625 C 66.890625 -975.742188 70.207031 -983.566406 76.84375 -989.734375 C 83.488281 -995.898438 91.550781 -999.457031 101.03125 -1000.40625 C 107.675781 -1001.363281 124.753906 -1002.078125 152.265625 -1002.546875 C 179.773438 -1003.023438 211.789062 -1003.738281 248.3125 -1004.6875 C 284.84375 -1005.632812 321.132812 -1006.34375 357.1875 -1006.8125 C 393.238281 -1007.289062 423.125 -1007.53125 446.84375 -1007.53125 C 587.25 -1007.53125 694.925781 -988.554688 769.875 -950.609375 C 844.820312 -912.660156 882.296875 -852.890625 882.296875 -771.296875 C 882.296875 -710.578125 859.289062 -654.128906 813.28125 -601.953125 C 767.269531 -549.773438 699.203125 -514.195312 609.078125 -495.21875 C 596.742188 -493.320312 590.335938 -488.34375 589.859375 -480.28125 C 589.378906 -472.21875 595.304688 -466.289062 607.640625 -462.5 C 709.160156 -437.832031 782.210938 -390.394531 826.796875 -320.1875 C 871.390625 -249.976562 893.6875 -156.054688 893.6875 -38.421875 C 893.6875 -27.035156 890.128906 -18.257812 883.015625 -12.09375 C 875.898438 -5.925781 867.125 -1.894531 856.6875 0 C 841.507812 1.894531 826.09375 3.316406 810.4375 4.265625 C 794.78125 5.210938 782.207031 5.6875 772.71875 5.6875 C 761.332031 5.6875 746.148438 5.210938 727.171875 4.265625 C 708.203125 3.316406 691.128906 1.894531 675.953125 0 C 665.515625 -1.894531 656.5 -5.925781 648.90625 -12.09375 C 641.320312 -18.257812 637.53125 -27.035156 637.53125 -38.421875 C 636.582031 -88.703125 628.039062 -136.609375 611.90625 -182.140625 C 595.78125 -227.679688 573.960938 -268.238281 546.453125 -303.8125 C 518.941406 -339.394531 487.160156 -367.617188 451.109375 -388.484375 C 415.054688 -409.359375 377.109375 -419.796875 337.265625 -419.796875 C 316.390625 -419.796875 299.785156 -412.914062 287.453125 -399.15625 C 275.117188 -385.40625 268.953125 -367.144531 268.953125 -344.375 C 268.953125 -289.351562 273.222656 -234.800781 281.765625 -180.71875 C 290.304688 -126.644531 296.472656 -79.6875 300.265625 -39.84375 C 302.160156 -29.40625 299.3125 -20.628906 291.71875 -13.515625 C 284.132812 -6.398438 275.125 -1.894531 264.6875 0 C 250.457031 1.894531 235.515625 3.316406 219.859375 4.265625 C 204.203125 5.210938 188.3125 5.6875 172.1875 5.6875 Z M 338.6875 -573.5 C 444 -583.925781 525.113281 -602.421875 582.03125 -628.984375 C 638.957031 -655.554688 667.421875 -688.289062 667.421875 -727.1875 C 667.421875 -763.238281 648.445312 -789.5625 610.5 -806.15625 C 572.550781 -822.757812 513.726562 -831.0625 434.03125 -831.0625 C 411.257812 -831.0625 391.097656 -831.0625 373.546875 -831.0625 C 356.003906 -831.0625 338.21875 -830.113281 320.1875 -828.21875 C 286.03125 -825.375 267.53125 -808.296875 264.6875 -776.984375 C 263.738281 -756.117188 262.789062 -730.742188 261.84375 -700.859375 C 260.894531 -670.972656 261.84375 -643.695312 264.6875 -619.03125 C 266.582031 -598.15625 274.171875 -584.394531 287.453125 -577.75 C 300.734375 -571.113281 317.8125 -569.695312 338.6875 -573.5 Z M 338.6875 -573.5 "/></g></g></g></g></g><g clip-path="url(#a5156532c7)"><g clip-path="url(#a01d29dd9a)"><g transform="matrix(1, 0, 0, 1, 513, 334)"><g clip-path="url(#e14db08c2f)"><g clip-path="url(#b512585037)"><g clip-path="url(#11be8d129f)"><path fill="#1c2a14" d="M 0.234375 0.5625 L 526.761719 0.5625 L 526.761719 438.195312 L 0.234375 438.195312 Z M 0.234375 0.5625 " fill-opacity="1" fill-rule="nonzero"/></g></g></g></g></g></g><g clip-path="url(#ed428d7268)"><g clip-path="url(#7dfe6fded2)"><g clip-path="url(#c8105ba7ff)"><path fill="#9fc829" d="M 887.683594 430.636719 C 871.019531 452.453125 839.839844 456.667969 817.925781 440.113281 C 796.105469 423.445312 791.835938 392.25 808.515625 370.371094 C 825.132812 348.472656 856.332031 344.199219 878.210938 360.882812 C 900.03125 377.542969 904.300781 408.746094 887.683594 430.636719 Z M 887.683594 430.636719 " fill-opacity="1" fill-rule="nonzero"/></g></g></g><g clip-path="url(#a7f2102aa9)"><g clip-path="url(#bf8d8202c9)"><g clip-path="url(#c1fd6fec38)"><path fill="#9fc829" d="M 704.355469 604.050781 L 667.648438 635.628906 L 634.585938 641.535156 C 624.367188 643.347656 615.507812 649.011719 609.617188 657.507812 C 603.679688 665.933594 601.445312 676.238281 603.269531 686.390625 C 603.503906 687.730469 603.898438 688.976562 604.214844 690.273438 L 562.910156 725.878906 C 554.734375 732.941406 543.417969 734.851562 533.320312 730.863281 C 528.972656 729.132812 525.101562 726.390625 521.988281 722.851562 C 511.605469 710.683594 512.964844 692.355469 525.078125 681.953125 L 672.78125 554.6875 L 672.828125 554.769531 L 672.960938 555.007812 Z M 704.355469 604.050781 " fill-opacity="1" fill-rule="nonzero"/></g></g></g><g clip-path="url(#2ae9791565)"><g clip-path="url(#0d8fed2722)"><g clip-path="url(#346c37d003)"><path fill="#9fc829" d="M 669.65625 514.683594 C 668.351562 527.460938 656.972656 536.65625 644.257812 535.367188 C 642.960938 535.210938 641.679688 534.992188 640.433594 534.648438 C 640.308594 534.613281 640.199219 534.515625 640.015625 534.464844 C 639.453125 534.308594 638.972656 534.109375 638.425781 533.894531 C 637.589844 533.53125 636.796875 533.246094 636.035156 532.835938 C 635.511719 532.554688 634.984375 532.277344 634.476562 531.933594 C 633.800781 531.476562 633.054688 531.007812 632.390625 530.492188 C 631.949219 530.164062 631.515625 529.78125 631.039062 529.3125 C 630.441406 528.8125 629.875 528.1875 629.308594 527.5625 C 628.960938 527.132812 628.542969 526.683594 628.195312 526.25 C 627.710938 525.582031 627.242188 524.847656 626.835938 524.132812 C 626.503906 523.636719 626.230469 523.160156 625.980469 522.625 C 625.589844 521.847656 625.277344 521.027344 624.972656 520.203125 C 624.78125 519.683594 624.574219 519.222656 624.394531 518.640625 C 624.121094 517.691406 623.96875 516.777344 623.835938 515.804688 C 623.765625 515.316406 623.621094 514.871094 623.554688 514.386719 C 623.480469 512.953125 623.4375 511.402344 623.582031 509.902344 L 639.917969 398.261719 C 639.96875 398.070312 640 397.953125 640.035156 397.828125 C 640.132812 396.980469 640.359375 396.171875 640.519531 395.347656 C 640.726562 394.601562 640.847656 393.898438 641.054688 393.152344 C 641.152344 393.046875 641.140625 392.84375 641.175781 392.714844 C 641.394531 392.175781 641.734375 391.664062 641.949219 391.121094 C 642.277344 390.410156 642.609375 389.699219 643 388.996094 C 643.390625 388.304688 643.890625 387.703125 644.328125 387.085938 C 644.769531 386.46875 645.125 385.898438 645.59375 385.425781 C 646.113281 384.761719 646.734375 384.195312 647.359375 383.632812 C 647.871094 383.238281 648.335938 382.761719 648.847656 382.371094 C 649.457031 381.867188 650.171875 381.460938 650.902344 380.992188 C 651.457031 380.675781 652.03125 380.296875 652.585938 379.980469 C 653.347656 379.65625 654.109375 379.328125 654.851562 379.0625 C 655.453125 378.824219 656.054688 378.585938 656.777344 378.386719 C 657.585938 378.140625 658.421875 378.035156 659.269531 377.867188 C 659.898438 377.769531 660.527344 377.679688 661.140625 377.644531 C 662.113281 377.507812 663.039062 377.5625 663.960938 377.617188 C 664.429688 377.613281 664.839844 377.589844 665.367188 377.601562 C 665.496094 377.636719 665.621094 377.671875 665.746094 377.707031 C 666.589844 377.804688 667.460938 378.042969 668.289062 378.203125 C 668.851562 378.355469 669.425781 378.449219 669.988281 378.605469 C 670.113281 378.640625 670.222656 378.734375 670.40625 378.785156 C 670.472656 378.804688 670.597656 378.839844 670.65625 378.855469 C 670.722656 378.871094 670.722656 378.871094 670.78125 378.890625 C 670.847656 378.90625 670.847656 378.90625 670.90625 378.921875 C 670.90625 378.921875 766.21875 411.003906 772.761719 415.21875 C 776.980469 417.917969 841.644531 474.398438 839.582031 492.597656 L 845.4375 554.789062 L 915.269531 526.363281 C 916.679688 525.878906 918.050781 525.519531 919.449219 525.304688 C 919.871094 525.214844 920.28125 525.199219 920.6875 525.175781 C 921.660156 525.039062 922.6875 524.988281 923.621094 524.976562 C 924.097656 524.972656 924.546875 525.027344 925.015625 525.027344 C 926 525.097656 927.03125 525.246094 927.984375 525.441406 C 928.355469 525.542969 928.746094 525.585938 929.0625 525.671875 C 929.25 525.722656 929.3125 525.742188 929.5 525.792969 C 929.875 525.894531 930.167969 526.042969 930.523438 526.210938 C 931.644531 526.519531 932.734375 526.953125 933.789062 527.511719 C 934.316406 527.792969 934.84375 528.070312 935.347656 528.410156 C 936.277344 528.9375 937.171875 529.582031 938.046875 530.296875 C 938.476562 530.683594 938.972656 531.082031 939.398438 531.46875 C 940.246094 532.304688 940.945312 533.167969 941.6875 534.109375 C 941.976562 534.523438 942.34375 534.894531 942.675781 535.386719 C 943.636719 536.792969 944.414062 538.347656 945.09375 540.007812 C 949.492188 552.007812 943.410156 565.34375 931.386719 569.808594 L 833.609375 607.28125 C 833.453125 607.371094 833.328125 607.335938 833.167969 607.425781 C 832.425781 607.695312 831.570312 607.859375 830.789062 608.046875 C 830 608.234375 829.277344 608.433594 828.582031 608.511719 C 828.378906 608.523438 828.21875 608.617188 828.078125 608.640625 C 827.464844 608.675781 826.945312 608.597656 826.335938 608.636719 C 825.578125 608.695312 824.761719 608.734375 823.980469 608.65625 C 823.183594 608.640625 822.433594 608.433594 821.652344 608.347656 C 820.953125 608.226562 820.246094 608.09375 819.625 607.925781 C 818.816406 607.699219 818.023438 607.414062 817.234375 607.128906 C 816.625 606.894531 816.015625 606.664062 815.433594 606.367188 C 814.65625 606.023438 813.976562 605.566406 813.300781 605.105469 C 812.730469 604.75 812.136719 604.457031 811.644531 604.050781 C 810.984375 603.535156 810.398438 602.96875 809.804688 602.46875 C 809.328125 602.003906 808.789062 601.519531 808.332031 600.992188 C 807.769531 600.367188 807.285156 599.695312 806.800781 599.023438 C 806.402344 598.515625 806.003906 598.003906 805.6875 597.445312 C 805.234375 596.648438 804.820312 595.730469 804.449219 594.890625 C 804.28125 594.515625 803.996094 594.097656 803.851562 593.65625 C 803.820312 593.519531 803.796875 593.371094 803.769531 593.234375 C 803.445312 592.472656 803.277344 591.621094 803.101562 590.769531 C 802.902344 590.042969 802.765625 589.332031 802.621094 588.625 C 802.605469 588.421875 802.578125 588.285156 802.554688 588.140625 L 795.554688 541.042969 C 795.554688 541.042969 771.46875 565.707031 764.492188 572.566406 L 805.925781 637.457031 C 810.09375 643.96875 811.492188 651.789062 809.828125 659.308594 C 808.878906 663.472656 807.019531 667.316406 804.511719 670.578125 C 804.285156 670.921875 804.199219 671.230469 803.984375 671.503906 C 799.554688 677.859375 792.882812 682.121094 785.285156 683.445312 L 646.382812 708.191406 C 642.085938 708.953125 637.796875 708.710938 633.621094 707.558594 C 622.90625 704.609375 614.714844 695.648438 612.769531 684.726562 C 612.65625 684.160156 612.75 683.578125 612.636719 683.015625 C 611.835938 675.960938 613.441406 668.894531 617.53125 663.054688 C 621.964844 656.699219 628.628906 652.4375 636.230469 651.113281 L 653.214844 648.082031 L 734.679688 633.59375 L 711.722656 597.710938 L 681.148438 549.820312 C 680.832031 549.265625 680.644531 548.742188 680.386719 548.207031 C 668.6875 524.742188 689.789062 496.777344 695.339844 489.527344 L 726.535156 448.527344 L 681.714844 432.164062 Z M 669.65625 514.683594 " fill-opacity="1" fill-rule="nonzero"/></g></g></g></svg>`;
+
+async function buildLogoBadgeImage(size) {
+  // Echtes Runnify-Logo (lime Squircle mit dunklem Monogramm + Runner-Silhouette).
+  return loadImage(`data:image/svg+xml;utf8,${encodeURIComponent(RUNNIFY_LOGO_SVG)}`);
+}
+
+async function buildPlanShareImage() {
+  const plan = state.plan;
+  if (!plan) return null;
+  if (document.fonts && document.fonts.ready) {
+    try {
+      await Promise.all([
+        document.fonts.load('600 64px Caveat'),
+        document.fonts.load('800 40px Manrope'),
+        document.fonts.load('700 30px Manrope'),
+        document.fonts.load('500 26px Manrope')
+      ]);
+      await document.fonts.ready;
+    } catch (e) { /* Fonts evtl. schon geladen, ignorieren */ }
+  }
+
+  const planWorkouts = (state.workouts || []).filter(w => w.type !== 'rest');
+  const completed = planWorkouts.filter(w => w.status === 'completed');
+  const pct = planWorkouts.length ? Math.round((completed.length / planWorkouts.length) * 100) : 0;
+  const logs = state.runLogs || [];
+  const totalKm = Math.round(logs.reduce((s, l) => s + (l.actual_distance_km || 0), 0) * 10) / 10;
+  const nextUp = planWorkouts
+    .filter(w => w.status !== 'completed' && w.scheduled_date >= localDateStr())
+    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))
+    .slice(0, 3);
+
+  const W = 1080, H = 1350;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Basis-Hintergrund (--bg)
+  ctx.fillStyle = '#F3F4EE';
+  ctx.fillRect(0, 0, W, H);
+
+  // Weiche Farb-Blobs, wie der body-Hintergrund der App
+  function blob(x, y, r, hex) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, hex + 'D9');
+    g.addColorStop(1, hex + '00');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  blob(W * 0.1, H * 0.06, 480, '#E3F5B4');
+  blob(W * 0.9, H * 0.1, 420, '#C9EEE2');
+  blob(W * 0.18, H * 0.95, 460, '#F6E9C4');
+  blob(W * 0.95, H * 0.88, 440, '#D7E7F6');
+
+  // Glass-Card
+  const cardX = 56, cardY = 150, cardW = W - cardX * 2, cardH = H - 300;
+  ctx.save();
+  roundRectPath(ctx, cardX, cardY, cardW, cardH, 46);
+  ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,0.58)';
+  ctx.fillRect(cardX, cardY, cardW, cardH);
+  ctx.restore();
+  roundRectPath(ctx, cardX, cardY, cardW, cardH, 46);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.stroke();
+  ctx.save();
+  roundRectPath(ctx, cardX, cardY, cardW, cardH, 46);
+  ctx.clip();
+  ctx.shadowColor = 'rgba(20,23,20,0.10)';
+  ctx.shadowBlur = 60;
+  ctx.shadowOffsetY = 20;
+  ctx.fillStyle = 'rgba(0,0,0,0)';
+  ctx.fillRect(cardX, cardY, cardW, cardH);
+  ctx.restore();
+
+  const padX = cardX + 56;
+  let cy = cardY + 78;
+
+  // Logo-Badge (echtes Logo, squircle-clipped) + Schriftzug
+  const badgeSize = 72;
+  const badge = await buildLogoBadgeImage(badgeSize);
+  ctx.save();
+  roundRectPath(ctx, padX, cy - 52, badgeSize, badgeSize, 18);
+  ctx.clip();
+  ctx.drawImage(badge, padX, cy - 52, badgeSize, badgeSize);
+  ctx.restore();
+  ctx.fillStyle = '#5C8A1E';
+  ctx.font = "600 54px Caveat";
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('Runnify', padX + 92, cy + 16);
+
+  cy += 104;
+
+  // Plan-Titel
+  ctx.fillStyle = '#14171B';
+  ctx.font = "800 40px Manrope";
+  const titleLines = wrapCanvasText(ctx, plan.summary || plan.goal || 'Mein Trainingsplan', padX, cy, cardW - 112, 50, 2);
+  cy += titleLines * 50 + 50;
+
+  // Fortschritt als Balken (wie im Fortschritt-Tab der App)
+  ctx.fillStyle = '#6E7568';
+  ctx.font = "700 24px Manrope";
+  ctx.fillText('TRAININGSPLAN-FORTSCHRITT', padX, cy);
+  ctx.fillStyle = '#5C8A1E';
+  ctx.font = "800 30px Manrope";
+  ctx.textAlign = 'right';
+  ctx.fillText(`${pct}%`, padX + cardW - 112, cy);
+  ctx.textAlign = 'left';
+
+  const barY = cy + 26, barH = 26, barW = cardW - 112;
+  roundRectPath(ctx, padX, barY, barW, barH, barH / 2);
+  ctx.fillStyle = 'rgba(20,23,20,0.08)';
+  ctx.fill();
+  const filledW = Math.max(barH, barW * (pct / 100));
+  if (pct > 0) {
+    roundRectPath(ctx, padX, barY, filledW, barH, barH / 2);
+    ctx.fillStyle = '#B7E23A';
+    ctx.fill();
+  }
+
+  ctx.fillStyle = '#6E7568';
+  ctx.font = "500 26px Manrope";
+  ctx.fillText(`${completed.length} von ${planWorkouts.length} Trainings absolviert`, padX, barY + barH + 44);
+
+  cy = barY + barH + 90;
+
+  // Stat-Chips: Gesamt-km / Läufe
+  function statChip(x, y, w, label, value) {
+    roundRectPath(ctx, x, y, w, 118, 24);
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.stroke();
+    ctx.fillStyle = '#6E7568';
+    ctx.font = "700 22px Manrope";
+    ctx.fillText(label, x + 26, y + 40);
+    ctx.fillStyle = '#14171B';
+    ctx.font = "800 44px Manrope";
+    ctx.fillText(value, x + 26, y + 90);
+  }
+  const chipW = (cardW - 112 - 20) / 2;
+  statChip(padX, cy, chipW, 'GESAMT GELAUFEN', `${totalKm} km`);
+  statChip(padX + chipW + 20, cy, chipW, 'LÄUFE GELOGGT', `${logs.length}`);
+
+  cy += 150;
+
+  // Nächste Trainings
+  if (nextUp.length) {
+    ctx.fillStyle = '#14171B';
+    ctx.font = "800 26px Manrope";
+    ctx.fillText('NÄCHSTE TRAININGS', padX, cy);
+    cy += 20;
+    nextUp.forEach((w, i) => {
+      const rowY = cy + 44 + i * 62;
+      roundRectPath(ctx, padX, rowY - 34, cardW - 112, 52, 16);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fill();
+      ctx.fillStyle = '#B7E23A';
+      ctx.beginPath(); ctx.arc(padX + 28, rowY - 8, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#14171B';
+      ctx.font = "700 26px Manrope";
+      const dateLabel = new Date(w.scheduled_date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+      ctx.fillText(`${dateLabel} · ${typeLabel(w.type)}`, padX + 50, rowY);
+      ctx.fillStyle = '#6E7568';
+      ctx.font = "600 24px Manrope";
+      ctx.textAlign = 'right';
+      ctx.fillText(`${w.target_distance_km} km`, padX + cardW - 112 - 20, rowY);
+      ctx.textAlign = 'left';
+    });
+  }
+
+  // Footer
+  ctx.fillStyle = '#6E7568';
+  ctx.font = "600 26px Manrope";
+  ctx.textAlign = 'center';
+  ctx.fillText('Getrackt mit Runnify — meinem KI-Laufcoach 🏃', W / 2, H - 60);
+  ctx.textAlign = 'left';
+
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/png', 0.95));
+}
+
+function buildPlanShareText() {
+  const plan = state.plan;
+  if (!plan) return null;
+  const planWorkouts = (state.workouts || []).filter(w => w.type !== 'rest');
+  const completed = planWorkouts.filter(w => w.status === 'completed');
+  const pct = planWorkouts.length ? Math.round((completed.length / planWorkouts.length) * 100) : 0;
+  const logs = state.runLogs || [];
+  const totalKm = Math.round(logs.reduce((s, l) => s + (l.actual_distance_km || 0), 0) * 10) / 10;
+  return `🏃 Mein Runnify-Trainingsplan: ${plan.summary || plan.goal}\nFortschritt: ${pct}% (${completed.length}/${planWorkouts.length}) · ${totalKm} km bisher\n\nGetrackt mit Runnify — meinem KI-Laufcoach.`;
+}
+
+async function sharePlan() {
+  if (!state.plan) { toast('Noch kein aktiver Plan zum Teilen.'); return; }
+  toast('Bild wird erstellt…');
+  let blob = null;
+  try {
+    blob = await buildPlanShareImage();
+  } catch (e) {
+    console.error('Share-Bild-Fehler', e);
+  }
+
+  if (blob) {
+    const file = new File([blob], 'runnify-plan.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Mein Runnify-Trainingsplan' });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+      }
+    }
+    // Fallback: Bild herunterladen
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'runnify-plan.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast('Bild gespeichert — teile es aus deiner Galerie ✓');
+    return;
+  }
+
+  // Letzter Fallback: reiner Text
+  const text = buildPlanShareText();
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Mein Runnify-Trainingsplan', text }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Plan in die Zwischenablage kopiert ✓');
+  } catch (e) {
+    toast('Teilen nicht möglich in diesem Browser.');
+  }
+}
+document.getElementById('btn-share-plan').addEventListener('click', sharePlan);
+
 // ---------- 9b. FORTSCHRITT ----------
+// ---------- 9d. WOCHENRÜCKBLICK ----------
+// Fasst die Läufe der letzten 7 Tage zusammen und lässt Bob eine kurze,
+// motivierende Einordnung dazu formulieren. Wird gecacht pro Kalenderwoche,
+// damit nicht bei jedem Tab-Wechsel neu generiert wird.
+const WEEKLY_REVIEW_PROMPT = `Du bist Bob, ein erfahrener KI-Lauf-Coach von Runnify. Du bekommst eine Liste der Läufe eines Users aus den letzten 7 Tagen als JSON, sowie Vergleichswerte der Vorwoche.
+Schreibe einen kurzen, persönlichen Wochenrückblick auf Deutsch (4-6 Sätze, KEIN Markdown, keine Überschriften):
+- Nenne Gesamtkilometer und Anzahl Läufe der Woche konkret.
+- Vergleiche kurz mit der Vorwoche (mehr/weniger/ähnlich), falls Vorwochendaten vorhanden sind.
+- Geh auf den Pace-Trend ein, falls erkennbar.
+- Schließe mit einer motivierenden, konkreten Empfehlung oder einem Lob für die kommende Woche.
+Sprich den User direkt an ("du"), warm und wie ein echter Coach, nicht wie ein Report.
+Falls in den letzten 7 Tagen GAR KEINE Läufe geloggt wurden, sei nicht vorwurfsvoll, sondern locker-motivierend und lade zum Wiedereinstieg ein.`;
+
+function weekRangeLogs(logs, offsetWeeks = 0) {
+  const now = Date.now();
+  const end = now - offsetWeeks * 7 * 24 * 60 * 60 * 1000;
+  const start = end - 7 * 24 * 60 * 60 * 1000;
+  return logs.filter(l => l.logged_at && l.logged_at > start && l.logged_at <= end);
+}
+
+let _weeklyReviewCache = null; // { weekKey, text }
+function currentWeekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil((((d - jan1) / 86400000) + jan1.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${week}`;
+}
+
+async function generateWeeklyReview(force) {
+  const wrap = document.getElementById('weekly-review-content');
+  const weekKey = currentWeekKey();
+  if (!force && _weeklyReviewCache && _weeklyReviewCache.weekKey === weekKey) {
+    wrap.innerHTML = `<p style="color:rgba(20,23,20,0.8);line-height:1.6;">${_weeklyReviewCache.text}</p>`;
+    return;
+  }
+  wrap.innerHTML = runnerLoaderHTML('Bob schaut sich deine Woche an…');
+  const logs = state.runLogs || [];
+  const thisWeek = weekRangeLogs(logs, 0);
+  const lastWeek = weekRangeLogs(logs, 1);
+  const summarize = (arr) => ({
+    runs: arr.length,
+    total_km: Math.round(arr.reduce((s, l) => s + (l.actual_distance_km || 0), 0) * 10) / 10,
+    avg_pace_sec_per_km: arr.length ? Math.round(arr.reduce((s, l) => s + (l.actual_pace_sec_per_km || 0), 0) / arr.length) : null
+  });
+  const payload = { this_week: summarize(thisWeek), last_week: summarize(lastWeek) };
+  try {
+    const text = await callAI(WEEKLY_REVIEW_PROMPT, [
+      { role: 'user', content: JSON.stringify(payload) }
+    ], false);
+    _weeklyReviewCache = { weekKey, text: text || 'Konnte gerade keinen Rückblick erstellen — versuch es später nochmal.' };
+    wrap.innerHTML = `<p style="color:rgba(20,23,20,0.8);line-height:1.6;">${_weeklyReviewCache.text}</p>`;
+  } catch (e) {
+    console.error('Wochenrückblick-Fehler', e);
+    wrap.innerHTML = `<p style="color:rgba(20,23,20,0.8);">Rückblick gerade nicht verfügbar. Tippen zum erneuten Versuch.</p>`;
+  }
+}
+document.getElementById('weekly-review-card').addEventListener('click', () => generateWeeklyReview(true));
+
 function renderProgress() {
+  generateWeeklyReview(false);
   // Plan-Fortschritt: Wie viel des aktiven Trainingsplans wurde absolviert
   const planWorkouts = state.workouts.filter(w => w.type !== 'rest');
   const completedWorkouts = planWorkouts.filter(w => w.status === 'completed');
